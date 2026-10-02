@@ -1,0 +1,76 @@
+.page {
+  padding: 28rpx;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin: 20rpx 4rpx 28rpx;
+}
+
+.title {
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.count {
+  font-size: 28rpx;
+  color: #777;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 8rpx 30rpx rgba(0,0,0,.04);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.kind {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.arrow {
+  font-size: 38rpx;
+  color: #999;
+}
+
+.summary {
+  display: block;
+  margin-top: 18rpx;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 28rpx;
+  word-break: break-all;
+}
+
+.meta, .muted {
+  display: block;
+  color: #888;
+  font-size: 24rpx;
+  margin-top: 18rpx;
+}
+
+.empty {
+  margin-top: 120rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  color: #555;
+}
+
+.ok {
+  font-size: 56rpx;
+}
+
+.retry {
+  margin-top: 20rpx;
+  width: 220rpx;
+}
