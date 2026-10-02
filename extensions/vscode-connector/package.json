@@ -1,0 +1,52 @@
+{
+  "name": "wechat-ahp-vscode-connector",
+  "displayName": "WeChat AHP Client Connector",
+  "description": "Outbound connector between local VS Code Agent Host and wechat-ahp-client relay.",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "vscode": "^1.110.0",
+    "node": ">=22"
+  },
+  "main": "./dist/extension.cjs",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      { "command": "wechatAhp.start", "title": "WeChat AHP Client: Start Connector" },
+      { "command": "wechatAhp.stop", "title": "WeChat AHP Client: Stop Connector" },
+      { "command": "wechatAhp.emitDemoApproval", "title": "WeChat AHP Client: Emit Demo Approval" }
+    ],
+    "configuration": {
+      "title": "WeChat AHP Client",
+      "properties": {
+        "wechatAhp.relayUrl": {
+          "type": "string",
+          "default": "ws://127.0.0.1:8787/connector"
+        },
+        "wechatAhp.machineId": {
+          "type": "string",
+          "default": "devbox"
+        },
+        "wechatAhp.connectorToken": {
+          "type": "string",
+          "default": "dev-connector"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --outfile=dist/extension.cjs --external:vscode",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@wechat-ahp/protocol": "workspace:*",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.6",
+    "@types/vscode": "^1.110.0",
+    "@types/ws": "^8.18.1",
+    "esbuild": "^0.25.10"
+  }
+}
