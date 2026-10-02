@@ -63,3 +63,18 @@ test('snapshot rejects cross-machine records', () => {
     /another machine/,
   );
 });
+
+
+test('equal-version pending projection cannot reopen terminal attention', () => {
+  const store = new AttentionStore();
+  const terminal: AttentionProjection = {
+    ...pending('att-1', 'machine-a', 9),
+    state: 'resolved_allow',
+    resolvedAt: '2026-10-02T01:00:00.000Z',
+  };
+  store.upsert(terminal);
+
+  const stalePending = pending('att-1', 'machine-a', 9);
+  assert.equal(store.upsert(stalePending), terminal);
+  assert.equal(store.get('att-1')?.state, 'resolved_allow');
+});
