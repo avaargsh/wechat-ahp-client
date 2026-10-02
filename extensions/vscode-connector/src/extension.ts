@@ -1,10 +1,11 @@
-import { randomUUID } from 'node:crypto';
 import * as vscode from 'vscode';
-import type { AttentionProjection } from '@wechat-ahp/protocol';
+import { AhpAdapter, type AhpBinding } from './ahp/adapter.js';
 import { RelayClient } from './relayClient.js';
 
-let client: RelayClient | undefined;
-const demoAttentions = new Map<string, AttentionProjection>();
+const BINDING_KEY = 'wechatAhp.binding';
+
+let relay: RelayClient | undefined;
+let adapter: AhpAdapter | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const output = vscode.window.createOutputChannel('WeChat AHP Client');
@@ -19,70 +20,83 @@ export function activate(context: vscode.ExtensionContext): void {
     };
   };
 
-  const start = () => {
-    client?.stop();
+  const stop = async () => {
+    relay?.stop();
+    relay = undefined;
+    await adapter?.stop();
+    adapter = undefined;
+  };
+
+  const start = async () => {
+    await stop();
     const config = configuration();
-    client = new RelayClient({
+
+    adapter = new AhpAdapter({
+      machineId: config.machineId,
+      onAttention: attention => relay?.publish(attention),
+      onResolved: attention => relay?.publishResolved(attention),
+      log: message => output.appendLine(message),
+    });
+
+    relay = new RelayClient({
       ...config,
       displayName: vscode.env.machineId.slice(0, 12),
       log: message => output.appendLine(message),
-      onResolve: async (id, decision, expectedVersion) => {
-        // Transport MVP only. AHP dispatch replaces this in the next slice.
-        const current = demoAttentions.get(id);
-        if (!current) throw new Error('attention no longer exists');
-        if (current.state !== 'pending') return current;
-        if (current.version !== expectedVersion) throw new Error('attention version changed');
-
-        const next: AttentionProjection = {
-          ...current,
-          state: decision === 'allow_once' ? 'resolved_allow' : 'resolved_reject',
-          version: current.version + 1,
-          resolvedAt: new Date().toISOString(),
-        };
-        demoAttentions.set(id, next);
-        output.appendLine(
-          `Demo approval resolved: ${decision}. Next step: dispatch AHP chat/toolCallConfirmed.`,
-        );
-        return next;
+      onConnected: () => {
+        for (const attention of adapter?.listPending() ?? []) relay?.publish(attention);
+      },
+      onResolve: (id, decision, expectedVersion) => {
+        if (!adapter) throw new Error('AHP adapter is not running');
+        return adapter.resolve(id, decision, expectedVersion);
       },
     });
-    client.start();
+    relay.start();
+
+    const binding = context.globalState.get<AhpBinding>(BINDING_KEY);
+    if (!binding) {
+      output.appendLine('No AHP chat selected. Run "WeChat AHP Client: Select Agent Host Chat".');
+      return;
+    }
+
+    try {
+      await adapter.start(binding);
+    } catch (error) {
+      output.appendLine(
+        `AHP start failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  };
+
+  const selectChat = async () => {
+    const choices = await AhpAdapter.selectBinding();
+    if (!choices.length) {
+      void vscode.window.showWarningMessage(
+        'No compatible local VS Code Agent Host chat was found. Open a Codex Agent Host session first.',
+      );
+      return;
+    }
+
+    const picked = await vscode.window.showQuickPick(
+      choices.map(binding => ({ label: binding.label, binding })),
+      { placeHolder: 'Select the exact Agent Host chat to expose to WeChat' },
+    );
+    if (!picked) return;
+
+    await context.globalState.update(BINDING_KEY, picked.binding);
+    await start();
+    void vscode.window.showInformationMessage(`WeChat AHP bound to: ${picked.binding.label}`);
   };
 
   context.subscriptions.push(
+    vscode.commands.registerCommand('wechatAhp.selectChat', selectChat),
     vscode.commands.registerCommand('wechatAhp.start', start),
-    vscode.commands.registerCommand('wechatAhp.stop', () => {
-      client?.stop();
-      client = undefined;
-    }),
-    vscode.commands.registerCommand('wechatAhp.emitDemoApproval', () => {
-      if (!client) start();
-      const config = configuration();
-      const id = `att_${randomUUID()}`;
-      const attention: AttentionProjection = {
-        id,
-        machineId: config.machineId,
-        sessionId: 'demo-session',
-        resourceUri: 'ahp-chat://demo',
-        kind: 'command',
-        projectName: vscode.workspace.name ?? 'demo-project',
-        title: '运行命令',
-        summary: 'npm test -- --coverage',
-        cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
-        impact: ['本机命令执行'],
-        state: 'pending',
-        version: 1,
-        observedAt: new Date().toISOString(),
-      };
-      demoAttentions.set(id, attention);
-      client?.publish(attention);
-      void vscode.window.showInformationMessage('Demo approval sent to relay.');
-    }),
+    vscode.commands.registerCommand('wechatAhp.stop', stop),
   );
 
-  start();
+  void start();
 }
 
-export function deactivate(): void {
-  client?.stop();
+export function deactivate(): Thenable<void> | void {
+  relay?.stop();
+  return adapter?.stop();
 }
