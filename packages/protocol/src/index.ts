@@ -40,6 +40,11 @@ export type ConnectorToRelay =
       version: string;
     }
   | {
+      type: 'attention.snapshot';
+      machineId: string;
+      attentions: AttentionProjection[];
+    }
+  | {
       type: 'attention.upsert';
       attention: AttentionProjection;
     }
