@@ -1,0 +1,38 @@
+# Roadmap
+
+## V0.1 — Attention transport MVP
+
+- [x] TypeScript monorepo
+- [x] outbound connector WebSocket
+- [x] authenticated relay API
+- [x] attention projection
+- [x] idempotent resolve request/ack path
+- [x] Mini Program inbox
+- [x] Mini Program approval detail
+- [x] demo approval command
+- [ ] real AHP tool-call subscription
+- [ ] dispatch AHP tool-call confirmation
+- [ ] reconcile pending approvals after relay restart
+
+## V0.2 — WeChat wake-up
+
+- wx.login / code2Session
+- QR device pairing
+- subscribe-message opt-in
+- safe notification projection
+- deep-link to approval detail
+- notification send journal
+
+## V1 — Agent Remote
+
+Session list, read-only timeline, questions/blocked state, completion.
+
+## V1.1 — Review
+
+AHP changesets, changed-file summary, diff viewer, “Ask Codex to revise”.
+
+## Later
+
+Lightweight terminal, multi-host, richer CCC-style navigation.
+
+No Monaco or full mobile IDE unless real usage proves it necessary.
