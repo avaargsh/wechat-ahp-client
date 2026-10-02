@@ -10,6 +10,7 @@ test('pairing code can be claimed exactly once', () => {
   assert.equal(first?.machineId, 'machine-a');
   assert.equal(first?.deviceName, 'iPhone');
   assert.ok(first?.token);
+  assert.equal(first?.wechatLinked, false);
 
   const second = store.claim(ticket.code, 'other', 3_000);
   assert.equal(second, undefined);
@@ -29,4 +30,14 @@ test('mobile session expires independently from pairing code', () => {
 
   assert.equal(store.authorize(session.token, 2_499)?.machineId, 'machine-a');
   assert.equal(store.authorize(session.token, 2_501), undefined);
+});
+
+test('paired session exposes only a linked flag, never the OpenID', () => {
+  const store = new PairingStore(60_000, 120_000);
+  const ticket = store.create('machine-a', 1_000);
+  const session = store.claim(ticket.code, 'iPhone', 2_000, 'openid-secret')!;
+
+  assert.equal(session.wechatLinked, true);
+  assert.equal(JSON.stringify(session).includes('openid-secret'), false);
+  assert.equal(store.authorize(session.token, 2_500)?.wechatLinked, true);
 });

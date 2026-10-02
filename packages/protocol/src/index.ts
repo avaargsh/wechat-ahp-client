@@ -25,6 +25,7 @@ export interface PairingTicket {
 export interface PairingClaimInput {
   code: string;
   deviceName?: string;
+  wechatCode?: string;
 }
 
 export interface MobileSession {
@@ -32,6 +33,7 @@ export interface MobileSession {
   machineId: string;
   deviceName: string;
   expiresAt: string;
+  wechatLinked?: boolean;
 }
 
 export interface AttentionProjection {

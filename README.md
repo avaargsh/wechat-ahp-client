@@ -64,7 +64,9 @@ WeChat AHP Client: Select Agent Host Chat
 ```
 
 For Mini Program development, set the relay HTTP origin in
-`apps/miniprogram/src/config.ts` and use the same `MOBILE_TOKEN`.
+`apps/miniprogram/src/config.ts`. The preferred flow is VS Code one-time pairing.
+For a real Mini Program identity, configure `WX_APPID` and `WX_APP_SECRET` on
+the relay; local tourist builds can leave both unset.
 
 ## Still intentionally missing
 

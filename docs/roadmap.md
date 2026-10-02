@@ -15,7 +15,7 @@
 
 ## V0.2 — WeChat wake-up
 
-- wx.login / code2Session
+- [x] wx.login / code2Session
 - [x] one-time device pairing code
 - [x] QR scan pairing UX
 - subscribe-message opt-in

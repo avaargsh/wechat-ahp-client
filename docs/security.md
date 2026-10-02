@@ -28,6 +28,17 @@ The normal mobile flow no longer depends on a shared default bearer token.
 
 Pairing codes are deleted after a successful claim. Mobile sessions currently live in relay memory and therefore intentionally expire on relay restart; persistence is a later hardening step.
 
+## WeChat identity binding
+
+When `WX_APPID` and `WX_APP_SECRET` are configured together, pairing also requires a fresh `wx.login()` code. The relay exchanges that temporary code with WeChat's server-side code2Session endpoint and binds the resulting OpenID to the relay-side mobile session.
+
+- `session_key` is never sent to the Mini Program.
+- OpenID is not returned in the mobile session response.
+- the Mini Program only sees `wechatLinked: true`.
+- if WeChat verification fails, pairing fails closed and no mobile session is issued.
+
+When both WeChat credentials are absent, identity verification is disabled so tourist/local development remains possible.
+
 For transitional local development only, setting `MOBILE_TOKEN` enables the old unscoped bearer-token path. There is no default `dev-mobile` fallback anymore.
 
 ## Fail closed

@@ -27,7 +27,15 @@ export default function PairPage() {
         // Device metadata is optional.
       }
 
-      await claimPairing({ code: normalized, deviceName });
+      let wechatCode: string | undefined;
+      try {
+        const login = await Taro.login();
+        wechatCode = login.code || undefined;
+      } catch {
+        // Tourist/dev builds can pair when relay WeChat auth is disabled.
+      }
+
+      await claimPairing({ code: normalized, deviceName, wechatCode });
       await Taro.showToast({ title: '绑定成功', icon: 'success' });
       setTimeout(() => {
         void Taro.navigateBack();
