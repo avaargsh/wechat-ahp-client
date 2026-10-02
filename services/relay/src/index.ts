@@ -160,7 +160,7 @@ server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
   if (
     url.pathname !== '/connector' ||
-    url.searchParams.get('token') !== connectorToken ||
+    req.headers.authorization !== `Bearer ${connectorToken}` ||
     !url.searchParams.get('machineId')
   ) {
     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
