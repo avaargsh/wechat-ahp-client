@@ -1,7 +1,7 @@
 {
   "name": "wechat-ahp-vscode-connector",
   "displayName": "WeChat AHP Client Connector",
-  "description": "Outbound connector between local VS Code Agent Host and wechat-ahp-client relay.",
+  "description": "Outbound AHP connector between local VS Code Agent Host and wechat-ahp-client relay.",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,9 +13,9 @@
   "activationEvents": ["onStartupFinished"],
   "contributes": {
     "commands": [
+      { "command": "wechatAhp.selectChat", "title": "WeChat AHP Client: Select Agent Host Chat" },
       { "command": "wechatAhp.start", "title": "WeChat AHP Client: Start Connector" },
-      { "command": "wechatAhp.stop", "title": "WeChat AHP Client: Stop Connector" },
-      { "command": "wechatAhp.emitDemoApproval", "title": "WeChat AHP Client: Emit Demo Approval" }
+      { "command": "wechatAhp.stop", "title": "WeChat AHP Client: Stop Connector" }
     ],
     "configuration": {
       "title": "WeChat AHP Client",
@@ -40,6 +40,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@microsoft/agent-host-protocol": "0.9.0",
     "@wechat-ahp/protocol": "workspace:*",
     "ws": "^8.18.3"
   },
