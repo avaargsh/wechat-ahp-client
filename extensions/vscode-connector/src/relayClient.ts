@@ -42,6 +42,14 @@ export class RelayClient {
     this.ws = undefined;
   }
 
+  sync(attentions: AttentionProjection[]): void {
+    this.send({
+      type: 'attention.snapshot',
+      machineId: this.options.machineId,
+      attentions,
+    });
+  }
+
   publish(attention: AttentionProjection): void {
     this.send({ type: 'attention.upsert', attention });
   }
