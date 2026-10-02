@@ -94,6 +94,19 @@ export class PairingStore {
     return this.publicSession(session);
   }
 
+  consumeNotificationConsent(
+    machineId: string,
+    openId: string,
+    now = Date.now(),
+  ): void {
+    this.cleanup(now);
+    for (const session of this.sessions.values()) {
+      if (session.machineId === machineId && session.wechatOpenId === openId) {
+        session.notificationsEnabled = false;
+      }
+    }
+  }
+
   notificationRecipients(
     machineId: string,
     now = Date.now(),
