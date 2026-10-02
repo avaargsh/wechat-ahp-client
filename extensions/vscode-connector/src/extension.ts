@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AhpAdapter, type AhpBinding } from './ahp/adapter.js';
 import { RelayClient } from './relayClient.js';
+import { showPairingQr } from './pairingView.js';
 
 const BINDING_KEY = 'wechatAhp.binding';
 
@@ -105,9 +106,24 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
+  const showPairingQrCode = async () => {
+    if (!relay) await start();
+    if (!relay) throw new Error('relay connector is unavailable');
+
+    try {
+      const ticket = await relay.createPairing();
+      await showPairingQr(ticket);
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        `Cannot create pairing QR: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  };
+
   context.subscriptions.push(
     vscode.commands.registerCommand('wechatAhp.selectChat', selectChat),
     vscode.commands.registerCommand('wechatAhp.showPairingCode', showPairingCode),
+    vscode.commands.registerCommand('wechatAhp.showPairingQr', showPairingQrCode),
     vscode.commands.registerCommand('wechatAhp.start', start),
     vscode.commands.registerCommand('wechatAhp.stop', stop),
   );
