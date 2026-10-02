@@ -10,12 +10,27 @@
     "node": ">=22"
   },
   "main": "./dist/extension.cjs",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
-      { "command": "wechatAhp.selectChat", "title": "WeChat AHP Client: Select Agent Host Chat" },
-      { "command": "wechatAhp.start", "title": "WeChat AHP Client: Start Connector" },
-      { "command": "wechatAhp.stop", "title": "WeChat AHP Client: Stop Connector" }
+      {
+        "command": "wechatAhp.selectChat",
+        "title": "WeChat AHP Client: Select Agent Host Chat"
+      },
+      {
+        "command": "wechatAhp.showPairingCode",
+        "title": "WeChat AHP Client: Show Pairing Code"
+      },
+      {
+        "command": "wechatAhp.start",
+        "title": "WeChat AHP Client: Start Connector"
+      },
+      {
+        "command": "wechatAhp.stop",
+        "title": "WeChat AHP Client: Stop Connector"
+      }
     ],
     "configuration": {
       "title": "WeChat AHP Client",
