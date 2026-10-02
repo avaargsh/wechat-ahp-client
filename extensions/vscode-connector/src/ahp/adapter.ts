@@ -40,7 +40,7 @@ function text(value: StringOrMarkdown | undefined): string {
   return typeof value === 'string' ? value : value.markdown;
 }
 
-function attentionId(binding: AhpBinding, turnId: string, toolCallId: string): string {
+function makeAttentionId(binding: AhpBinding, turnId: string, toolCallId: string): string {
   const digest = createHash('sha256')
     .update(JSON.stringify([binding.hostId, binding.chatUri, turnId, toolCallId]))
     .digest('hex')
@@ -69,6 +69,7 @@ export class AhpAdapter {
 
         for (let page = 0; page < 10; page++) {
           const result = await connection.listSessions(cursor);
+
           for (const summary of result.items) {
             let session: SessionState;
             try {
@@ -129,8 +130,10 @@ export class AhpAdapter {
   async stop(): Promise<void> {
     const subscription = this.subscription;
     this.subscription = undefined;
+
     if (subscription) await subscription.close().catch(() => undefined);
     await this.connection?.close().catch(() => undefined);
+
     this.connection = undefined;
     await this.consumeTask?.catch(() => undefined);
     this.consumeTask = undefined;
@@ -143,11 +146,11 @@ export class AhpAdapter {
   }
 
   async resolve(
-    attentionIdValue: string,
+    attentionId: string,
     decision: ResolveDecision,
     expectedVersion: number,
   ): Promise<AttentionProjection> {
-    const pending = this.pending.get(attentionIdValue);
+    const pending = this.pending.get(attentionId);
     const connection = this.connection;
 
     if (!pending || !connection) throw new Error('approval is no longer pending');
@@ -179,7 +182,7 @@ export class AhpAdapter {
       resolvedAt: new Date().toISOString(),
     };
 
-    this.pending.delete(attentionIdValue);
+    this.pending.delete(attentionId);
     this.options.onResolved(resolved);
     return resolved;
   }
@@ -214,26 +217,33 @@ export class AhpAdapter {
 
     for (const part of turn?.responseParts ?? []) {
       if (part.kind !== ResponsePartKind.ToolCall) continue;
+
       const tool = part.toolCall;
       if (
         tool.status !== ToolCallStatus.PendingConfirmation &&
         tool.status !== ToolCallStatus.PendingResultConfirmation
       ) continue;
 
-      const id = attentionId(binding, turn!.id, tool.toolCallId);
+      const id = makeAttentionId(binding, turn!.id, tool.toolCallId);
       seen.add(id);
-      const existing = this.pending.get(id);
-      if (existing) continue;
+      if (this.pending.has(id)) continue;
+
+      const preExecution = tool.status === ToolCallStatus.PendingConfirmation;
+      const hasEdits = preExecution && Boolean(tool.edits);
+      const title = preExecution
+        ? text(tool.confirmationTitle) || tool.displayName
+        : `确认 ${tool.displayName} 的结果`;
 
       const attention: AttentionProjection = {
         id,
         machineId: this.options.machineId,
         sessionId: binding.sessionUri,
         resourceUri: binding.chatUri,
-        kind: tool.edits ? 'file_write' : 'command',
-        title: text(tool.confirmationTitle) || tool.displayName || 'Codex 请求确认',
+        kind: hasEdits ? 'file_write' : 'command',
+        projectName: binding.label,
+        title: title || 'Codex 请求确认',
         summary: text(tool.invocationMessage) || tool.intention || tool.toolName,
-        impact: tool.edits ? ['文件修改'] : ['本机工具执行'],
+        impact: hasEdits ? ['文件修改'] : ['本机工具执行'],
         state: 'pending',
         version: Math.max(1, this.sequence),
         observedAt: new Date().toISOString(),
@@ -249,6 +259,7 @@ export class AhpAdapter {
 
     for (const [id, previous] of [...this.pending]) {
       if (seen.has(id)) continue;
+
       this.pending.delete(id);
       this.options.onResolved({
         ...previous.attention,
