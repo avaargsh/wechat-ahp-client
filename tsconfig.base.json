@@ -7,6 +7,10 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@wechat-ahp/protocol": ["packages/protocol/src/index.ts"]
+    }
   }
 }
