@@ -6,23 +6,33 @@ import type {
   AttentionState,
   AttentionProjection,
   ConnectorToRelay,
+  MobileSession,
+  PairingClaimInput,
   RelayToConnector,
   ResolveAttentionInput,
 } from '@wechat-ahp/protocol';
 import { AttentionStore } from './store.js';
+import { PairingStore } from './pairingStore.js';
 
 const port = Number(process.env.PORT ?? 8787);
-const mobileToken = process.env.MOBILE_TOKEN ?? 'dev-mobile';
+const legacyMobileToken = process.env.MOBILE_TOKEN;
 const connectorToken = process.env.CONNECTOR_TOKEN ?? 'dev-connector';
 const resolveTimeoutMs = Number(process.env.RESOLVE_TIMEOUT_MS ?? 10_000);
 
 const attentions = new AttentionStore();
+const pairings = new PairingStore();
 const connectors = new Map<string, WebSocket>();
 const pendingResolutions = new Map<string, {
   resolve: (value: AttentionProjection) => void;
   reject: (error: Error) => void;
   timer: NodeJS.Timeout;
 }>();
+
+interface AuthContext {
+  machineId?: string;
+  session?: MobileSession;
+  legacy: boolean;
+}
 
 function json(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
@@ -33,8 +43,32 @@ function apiError(res: ServerResponse, status: number, code: ApiError['code'], e
   json(res, status, { code, error } satisfies ApiError);
 }
 
-function authorized(req: IncomingMessage): boolean {
-  return req.headers.authorization === `Bearer ${mobileToken}`;
+function bearer(req: IncomingMessage): string | undefined {
+  const value = req.headers.authorization;
+  if (!value?.startsWith('Bearer ')) return;
+  return value.slice('Bearer '.length).trim() || undefined;
+}
+
+function authorize(req: IncomingMessage): AuthContext | undefined {
+  const token = bearer(req);
+  if (!token) return;
+
+  const session = pairings.authorize(token);
+  if (session) {
+    return {
+      machineId: session.machineId,
+      session,
+      legacy: false,
+    };
+  }
+
+  if (legacyMobileToken && token === legacyMobileToken) {
+    return { legacy: true };
+  }
+}
+
+function visibleTo(auth: AuthContext, attention: AttentionProjection): boolean {
+  return !auth.machineId || attention.machineId === auth.machineId;
 }
 
 async function readJson<T>(req: IncomingMessage): Promise<T> {
@@ -99,26 +133,56 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/pairing/claim') {
+      const input = await readJson<PairingClaimInput>(req);
+      if (!input.code || typeof input.code !== 'string') {
+        return apiError(res, 400, 'bad_request', 'pairing code is required');
+      }
+
+      const session = pairings.claim(input.code, input.deviceName);
+      if (!session) {
+        return apiError(res, 401, 'unauthorized', 'pairing code is invalid or expired');
+      }
+
+      json(res, 201, session);
+      return;
+    }
+
     if (!url.pathname.startsWith('/api/')) {
       apiError(res, 404, 'not_found', 'not found');
       return;
     }
 
-    if (!authorized(req)) {
+    const auth = authorize(req);
+    if (!auth) {
       apiError(res, 401, 'unauthorized', 'unauthorized');
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/session') {
+      json(res, 200, auth.session ?? {
+        machineId: null,
+        deviceName: 'legacy development token',
+        expiresAt: null,
+      });
       return;
     }
 
     if (req.method === 'GET' && url.pathname === '/api/attention') {
       const state = url.searchParams.get('state') as AttentionState | null;
-      json(res, 200, { items: attentions.list(state ?? undefined) });
+      const items = attentions
+        .list(state ?? undefined)
+        .filter(item => visibleTo(auth, item));
+      json(res, 200, { items });
       return;
     }
 
     const detail = url.pathname.match(/^\/api\/attention\/([^/]+)$/);
     if (req.method === 'GET' && detail) {
       const item = attentions.get(decodeURIComponent(detail[1]!));
-      if (!item) return apiError(res, 404, 'not_found', 'attention not found');
+      if (!item || !visibleTo(auth, item)) {
+        return apiError(res, 404, 'not_found', 'attention not found');
+      }
       json(res, 200, item);
       return;
     }
@@ -127,7 +191,9 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && resolve) {
       const id = decodeURIComponent(resolve[1]!);
       const item = attentions.get(id);
-      if (!item) return apiError(res, 404, 'not_found', 'attention not found');
+      if (!item || !visibleTo(auth, item)) {
+        return apiError(res, 404, 'not_found', 'attention not found');
+      }
 
       const input = await readJson<ResolveAttentionInput>(req);
       if (
@@ -193,6 +259,20 @@ server.on('upgrade', (req, socket, head) => {
     ws.on('message', raw => {
       try {
         const message = JSON.parse(raw.toString()) as ConnectorToRelay;
+
+        if (message.type === 'pairing.create') {
+          if (message.machineId !== machineId) {
+            throw new Error('pairing machine does not match authenticated connector');
+          }
+
+          send(ws, {
+            type: 'pairing.create.result',
+            requestId: message.requestId,
+            ok: true,
+            ticket: pairings.create(machineId),
+          });
+          return;
+        }
 
         if (message.type === 'attention.snapshot') {
           if (message.machineId !== machineId) {
