@@ -21,6 +21,17 @@ export class AttentionStore {
     const existing = this.items.get(attention.id);
     if (existing && attention.version < existing.version) return existing;
 
+    // A stale equal-version pending projection must never reopen an approval
+    // that this relay has already observed as terminal.
+    if (
+      existing &&
+      attention.version === existing.version &&
+      existing.state !== 'pending' &&
+      attention.state === 'pending'
+    ) {
+      return existing;
+    }
+
     this.items.set(attention.id, attention);
     return attention;
   }
