@@ -154,9 +154,15 @@ export class AhpAdapter {
     const pending = this.pending.get(attentionId);
     const connection = this.connection;
 
-    if (!pending || !connection) throw new Error('approval is no longer pending');
+    if (!pending || !connection) {
+      throw Object.assign(new Error('approval is no longer pending'), {
+        code: 'not_pending' as const,
+      });
+    }
     if (pending.attention.version !== expectedVersion) {
-      throw new Error('approval changed; refresh before deciding');
+      throw Object.assign(new Error('approval changed; refresh before deciding'), {
+        code: 'version_conflict' as const,
+      });
     }
 
     const action: StateAction = decision === 'allow_once'

@@ -15,6 +15,7 @@ import { AttentionStore } from './store.js';
 import { PairingStore } from './pairingStore.js';
 import { WeChatAuth } from './wechatAuth.js';
 import { NotificationJournal, WeChatNotifier } from './wechatNotification.js';
+import { ResolutionGate } from './resolutionGate.js';
 
 const port = Number(process.env.PORT ?? 8787);
 const legacyMobileToken = process.env.MOBILE_TOKEN;
@@ -26,6 +27,7 @@ const pairings = new PairingStore();
 const wechatAuth = new WeChatAuth();
 const notifier = new WeChatNotifier();
 const notificationJournal = new NotificationJournal();
+const resolutionGate = new ResolutionGate<AttentionProjection>();
 const connectors = new Map<string, WebSocket>();
 const pendingResolutions = new Map<string, {
   resolve: (value: AttentionProjection) => void;
@@ -120,29 +122,31 @@ async function resolveAttention(
     throw Object.assign(new Error('version conflict'), { code: 'version_conflict' });
   }
 
-  const ws = connectors.get(attention.machineId);
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    throw Object.assign(new Error('machine offline'), { code: 'machine_offline' });
-  }
+  return resolutionGate.run(attention.id, input, async () => {
+    const ws = connectors.get(attention.machineId);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      throw Object.assign(new Error('machine offline'), { code: 'machine_offline' });
+    }
 
-  const requestId = randomUUID();
-  const result = new Promise<AttentionProjection>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      pendingResolutions.delete(requestId);
-      reject(Object.assign(new Error('connector timeout'), { code: 'connector_timeout' }));
-    }, resolveTimeoutMs);
-    pendingResolutions.set(requestId, { resolve, reject, timer });
+    const requestId = randomUUID();
+    const result = new Promise<AttentionProjection>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        pendingResolutions.delete(requestId);
+        reject(Object.assign(new Error('connector timeout'), { code: 'connector_timeout' }));
+      }, resolveTimeoutMs);
+      pendingResolutions.set(requestId, { resolve, reject, timer });
+    });
+
+    send(ws, {
+      type: 'approval.resolve',
+      requestId,
+      attentionId: attention.id,
+      expectedVersion: input.expectedVersion,
+      decision: input.decision,
+    });
+
+    return result;
   });
-
-  send(ws, {
-    type: 'approval.resolve',
-    requestId,
-    attentionId: attention.id,
-    expectedVersion: input.expectedVersion,
-    decision: input.decision,
-  });
-
-  return result;
 }
 
 const server = createServer(async (req, res) => {
@@ -278,6 +282,12 @@ const server = createServer(async (req, res) => {
         if (code === 'version_conflict') {
           return apiError(res, 409, code, 'attention changed; refresh first');
         }
+        if (code === 'not_pending') {
+          return apiError(res, 409, code, 'attention is no longer pending');
+        }
+        if (code === 'resolution_in_progress') {
+          return apiError(res, 409, code, 'another decision is already being confirmed');
+        }
         if (code === 'machine_offline') {
           return apiError(res, 503, code, 'development machine is offline');
         }
@@ -382,7 +392,11 @@ server.on('upgrade', (req, socket, head) => {
             pending.resolve(message.attention);
           } else {
             if (message.attention) attentions.upsert(message.attention);
-            pending.reject(new Error(message.error));
+            pending.reject(
+              Object.assign(new Error(message.error), {
+                code: message.code,
+              }),
+            );
           }
         }
       } catch (error) {

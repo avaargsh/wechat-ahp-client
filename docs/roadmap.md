@@ -23,6 +23,16 @@
 - [x] deep-link to approval detail
 - [x] in-memory notification send journal
 
+## V0.3 — Reliable approval golden path
+
+- [x] re-fetch authoritative projection immediately before mobile decision
+- [x] only show success after Agent Host dispatch ACK
+- [x] coalesce identical duplicate resolve requests
+- [x] fail closed on conflicting cross-device decisions
+- [x] reconcile stale Host state before returning resolve conflict
+- [x] prevent equal-version stale pending projection from reopening terminal state
+- [ ] verify end-to-end on a real WeChat device + VS Code Agent Host
+
 ## V1 — Agent Remote
 
 Session list, read-only timeline, questions/blocked state, completion.
