@@ -78,3 +78,16 @@ export function resolveAttention(
     input,
   );
 }
+
+export interface NotificationConfig {
+  enabled: boolean;
+  templateId?: string;
+}
+
+export function getNotificationConfig(): Promise<NotificationConfig> {
+  return request('/api/notifications/config');
+}
+
+export function setNotificationsEnabled(enabled = true): Promise<MobileSession> {
+  return request('/api/notifications/enable', 'POST', { enabled });
+}
