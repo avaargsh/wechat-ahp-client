@@ -75,3 +75,18 @@ test('duplicate sessions for one OpenID produce one notification recipient', () 
 
   assert.equal(store.notificationRecipients('machine-a', 5_000).length, 1);
 });
+
+test('one notification attempt consumes consent across duplicate sessions', () => {
+  const store = new PairingStore(60_000, 120_000);
+
+  const ticketA = store.create('machine-a', 1_000);
+  const a = store.claim(ticketA.code, 'iPhone', 1_500, 'same-openid')!;
+  store.setNotificationsEnabled(a.token, true, 2_000);
+
+  const ticketB = store.create('machine-a', 3_000);
+  const b = store.claim(ticketB.code, 'iPad', 3_500, 'same-openid')!;
+  store.setNotificationsEnabled(b.token, true, 4_000);
+
+  store.consumeNotificationConsent('machine-a', 'same-openid', 5_000);
+  assert.deepEqual(store.notificationRecipients('machine-a', 5_500), []);
+});
