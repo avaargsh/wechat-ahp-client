@@ -162,11 +162,16 @@ export class RelayClient {
         attention,
       });
     } catch (error) {
+      const code = (error as {
+        code?: 'not_pending' | 'version_conflict';
+      }).code;
+
       this.send({
         type: 'approval.resolve.result',
         requestId: message.requestId,
         ok: false,
         error: error instanceof Error ? error.message : 'resolve failed',
+        ...(code ? { code } : {}),
       });
     }
   }
