@@ -74,9 +74,13 @@ export default function InboxPage() {
         return;
       }
 
-      const result = await Taro.requestSubscribeMessage({
+      // Taro 4.3's cross-platform type currently makes Alipay entityIds
+      // required even for a WeChat-only tmplIds request. Keep the runtime
+      // payload strictly WeChat-shaped and narrow through unknown here.
+      const subscribeRequest = {
         tmplIds: [config.templateId],
-      });
+      } as unknown as Parameters<typeof Taro.requestSubscribeMessage>[0];
+      const result = await Taro.requestSubscribeMessage(subscribeRequest);
       const decision = (result as unknown as Record<string, unknown>)[config.templateId];
 
       if (decision !== 'accept') {
