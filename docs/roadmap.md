@@ -9,15 +9,15 @@
 - [x] idempotent resolve request/ack path
 - [x] Mini Program inbox
 - [x] Mini Program approval detail
-- [x] demo approval command
-- [ ] real AHP tool-call subscription
-- [ ] dispatch AHP tool-call confirmation
+- [x] real AHP tool-call subscription
+- [x] dispatch AHP tool-call confirmation
 - [x] reconcile pending approvals after relay reconnect/restart
 
 ## V0.2 — WeChat wake-up
 
 - wx.login / code2Session
-- QR device pairing
+- [x] one-time device pairing code
+- QR scan pairing UX
 - subscribe-message opt-in
 - safe notification projection
 - deep-link to approval detail

@@ -88,8 +88,26 @@ export function activate(context: vscode.ExtensionContext): void {
     void vscode.window.showInformationMessage(`WeChat AHP bound to: ${picked.binding.label}`);
   };
 
+  const showPairingCode = async () => {
+    if (!relay) await start();
+    if (!relay) throw new Error('relay connector is unavailable');
+
+    try {
+      const ticket = await relay.createPairing();
+      await vscode.window.showInformationMessage(
+        `Pairing code: ${ticket.code} · expires ${new Date(ticket.expiresAt).toLocaleTimeString()}`,
+        { modal: true },
+      );
+    } catch (error) {
+      void vscode.window.showErrorMessage(
+        `Cannot create pairing code: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  };
+
   context.subscriptions.push(
     vscode.commands.registerCommand('wechatAhp.selectChat', selectChat),
+    vscode.commands.registerCommand('wechatAhp.showPairingCode', showPairingCode),
     vscode.commands.registerCommand('wechatAhp.start', start),
     vscode.commands.registerCommand('wechatAhp.stop', stop),
   );
