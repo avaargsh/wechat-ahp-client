@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  typecheck:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,4 @@ jobs:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm typecheck
+      - run: pnpm build
