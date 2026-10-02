@@ -90,6 +90,7 @@ export type ConnectorToRelay =
       requestId: string;
       ok: false;
       error: string;
+      code?: 'not_pending' | 'version_conflict';
       attention?: AttentionProjection;
     };
 
@@ -125,6 +126,7 @@ export interface ApiError {
     | 'not_found'
     | 'not_pending'
     | 'version_conflict'
+    | 'resolution_in_progress'
     | 'machine_offline'
     | 'connector_timeout'
     | 'unauthorized'
