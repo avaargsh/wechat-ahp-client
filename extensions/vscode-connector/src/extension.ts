@@ -46,9 +46,18 @@ export function activate(context: vscode.ExtensionContext): void {
       onConnected: () => {
         relay?.sync(adapter?.listPending() ?? []);
       },
-      onResolve: (id, decision, expectedVersion) => {
+      onResolve: async (id, decision, expectedVersion) => {
         if (!adapter) throw new Error('AHP adapter is not running');
-        return adapter.resolve(id, decision, expectedVersion);
+
+        try {
+          return await adapter.resolve(id, decision, expectedVersion);
+        } catch (error) {
+          // If the Host says the approval is stale, immediately project the
+          // authoritative pending set before returning the failure. WebSocket
+          // ordering guarantees the relay reconciles this snapshot first.
+          relay?.sync(adapter.listPending());
+          throw error;
+        }
       },
     });
     relay.start();
