@@ -1,20 +1,22 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { WebSocket, WebSocketServer } from 'ws';
 import type {
   ApiError,
+  AttentionState,
   AttentionProjection,
   ConnectorToRelay,
   RelayToConnector,
   ResolveAttentionInput,
 } from '@wechat-ahp/protocol';
+import { AttentionStore } from './store.js';
 
 const port = Number(process.env.PORT ?? 8787);
 const mobileToken = process.env.MOBILE_TOKEN ?? 'dev-mobile';
 const connectorToken = process.env.CONNECTOR_TOKEN ?? 'dev-connector';
 const resolveTimeoutMs = Number(process.env.RESOLVE_TIMEOUT_MS ?? 10_000);
 
-const attentions = new Map<string, AttentionProjection>();
+const attentions = new AttentionStore();
 const connectors = new Map<string, WebSocket>();
 const pendingResolutions = new Map<string, {
   resolve: (value: AttentionProjection) => void;
@@ -54,6 +56,7 @@ async function resolveAttention(
   input: ResolveAttentionInput,
 ): Promise<AttentionProjection> {
   if (attention.state !== 'pending') return attention;
+
   if (attention.version !== input.expectedVersion) {
     throw Object.assign(new Error('version conflict'), { code: 'version_conflict' });
   }
@@ -88,7 +91,11 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
     if (req.method === 'GET' && url.pathname === '/health') {
-      json(res, 200, { ok: true, connectors: connectors.size, attentions: attentions.size });
+      json(res, 200, {
+        ok: true,
+        connectors: connectors.size,
+        attentions: attentions.size,
+      });
       return;
     }
 
@@ -103,11 +110,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/attention') {
-      const state = url.searchParams.get('state');
-      const items = [...attentions.values()]
-        .filter(item => !state || item.state === state)
-        .sort((a, b) => b.observedAt.localeCompare(a.observedAt));
-      json(res, 200, { items });
+      const state = url.searchParams.get('state') as AttentionState | null;
+      json(res, 200, { items: attentions.list(state ?? undefined) });
       return;
     }
 
@@ -126,7 +130,10 @@ const server = createServer(async (req, res) => {
       if (!item) return apiError(res, 404, 'not_found', 'attention not found');
 
       const input = await readJson<ResolveAttentionInput>(req);
-      if (!['allow_once', 'reject'].includes(input.decision) || !Number.isInteger(input.expectedVersion)) {
+      if (
+        !['allow_once', 'reject'].includes(input.decision) ||
+        !Number.isInteger(input.expectedVersion)
+      ) {
         return apiError(res, 400, 'bad_request', 'invalid resolve request');
       }
 
@@ -139,9 +146,15 @@ const server = createServer(async (req, res) => {
         json(res, 200, await resolveAttention(item, input));
       } catch (error) {
         const code = (error as { code?: ApiError['code'] }).code;
-        if (code === 'version_conflict') return apiError(res, 409, code, 'attention changed; refresh first');
-        if (code === 'machine_offline') return apiError(res, 503, code, 'development machine is offline');
-        if (code === 'connector_timeout') return apiError(res, 504, code, 'connector did not confirm the action');
+        if (code === 'version_conflict') {
+          return apiError(res, 409, code, 'attention changed; refresh first');
+        }
+        if (code === 'machine_offline') {
+          return apiError(res, 503, code, 'development machine is offline');
+        }
+        if (code === 'connector_timeout') {
+          return apiError(res, 504, code, 'connector did not confirm the action');
+        }
         throw error;
       }
       return;
@@ -181,23 +194,34 @@ server.on('upgrade', (req, socket, head) => {
       try {
         const message = JSON.parse(raw.toString()) as ConnectorToRelay;
 
+        if (message.type === 'attention.snapshot') {
+          if (message.machineId !== machineId) {
+            throw new Error('snapshot machine does not match authenticated connector');
+          }
+          attentions.reconcile(machineId, message.attentions);
+          return;
+        }
+
         if (message.type === 'attention.upsert' || message.type === 'attention.resolved') {
-          if (message.attention.machineId !== machineId) return;
-          attentions.set(message.attention.id, message.attention);
+          if (message.attention.machineId !== machineId) {
+            throw new Error('attention machine does not match authenticated connector');
+          }
+          attentions.upsert(message.attention);
           return;
         }
 
         if (message.type === 'approval.resolve.result') {
           const pending = pendingResolutions.get(message.requestId);
           if (!pending) return;
+
           clearTimeout(pending.timer);
           pendingResolutions.delete(message.requestId);
 
           if (message.ok) {
-            attentions.set(message.attention.id, message.attention);
+            attentions.upsert(message.attention);
             pending.resolve(message.attention);
           } else {
-            if (message.attention) attentions.set(message.attention.id, message.attention);
+            if (message.attention) attentions.upsert(message.attention);
             pending.reject(new Error(message.error));
           }
         }
