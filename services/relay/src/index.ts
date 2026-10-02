@@ -13,6 +13,7 @@ import type {
 } from '@wechat-ahp/protocol';
 import { AttentionStore } from './store.js';
 import { PairingStore } from './pairingStore.js';
+import { WeChatAuth } from './wechatAuth.js';
 
 const port = Number(process.env.PORT ?? 8787);
 const legacyMobileToken = process.env.MOBILE_TOKEN;
@@ -21,6 +22,7 @@ const resolveTimeoutMs = Number(process.env.RESOLVE_TIMEOUT_MS ?? 10_000);
 
 const attentions = new AttentionStore();
 const pairings = new PairingStore();
+const wechatAuth = new WeChatAuth();
 const connectors = new Map<string, WebSocket>();
 const pendingResolutions = new Map<string, {
   resolve: (value: AttentionProjection) => void;
@@ -139,7 +141,20 @@ const server = createServer(async (req, res) => {
         return apiError(res, 400, 'bad_request', 'pairing code is required');
       }
 
-      const session = pairings.claim(input.code, input.deviceName);
+      let identity;
+      try {
+        identity = await wechatAuth.exchange(input.wechatCode);
+      } catch (error) {
+        console.warn('WeChat login verification failed', error);
+        return apiError(res, 401, 'unauthorized', 'WeChat login verification failed');
+      }
+
+      const session = pairings.claim(
+        input.code,
+        input.deviceName,
+        Date.now(),
+        identity?.openId,
+      );
       if (!session) {
         return apiError(res, 401, 'unauthorized', 'pairing code is invalid or expired');
       }
