@@ -24,6 +24,10 @@
         "title": "WeChat AHP Client: Show Pairing Code"
       },
       {
+        "command": "wechatAhp.showPairingQr",
+        "title": "WeChat AHP Client: Show Pairing QR"
+      },
+      {
         "command": "wechatAhp.start",
         "title": "WeChat AHP Client: Start Connector"
       },
@@ -57,12 +61,14 @@
   "dependencies": {
     "@microsoft/agent-host-protocol": "0.9.0",
     "@wechat-ahp/protocol": "workspace:*",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/node": "^22.18.6",
     "@types/vscode": "^1.110.0",
     "@types/ws": "^8.18.1",
-    "esbuild": "^0.25.10"
+    "esbuild": "^0.25.10",
+    "@types/qrcode": "^1.5.5"
   }
 }

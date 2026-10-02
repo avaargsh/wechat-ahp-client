@@ -17,7 +17,7 @@
 
 - wx.login / code2Session
 - [x] one-time device pairing code
-- QR scan pairing UX
+- [x] QR scan pairing UX
 - subscribe-message opt-in
 - safe notification projection
 - deep-link to approval detail
