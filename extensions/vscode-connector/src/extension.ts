@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
       displayName: vscode.env.machineId.slice(0, 12),
       log: message => output.appendLine(message),
       onConnected: () => {
-        for (const attention of adapter?.listPending() ?? []) relay?.publish(attention);
+        relay?.sync(adapter?.listPending() ?? []);
       },
       onResolve: (id, decision, expectedVersion) => {
         if (!adapter) throw new Error('AHP adapter is not running');
@@ -60,6 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     try {
       await adapter.start(binding);
+      relay?.sync(adapter.listPending());
     } catch (error) {
       output.appendLine(
         `AHP start failed: ${error instanceof Error ? error.message : 'unknown error'}`,
