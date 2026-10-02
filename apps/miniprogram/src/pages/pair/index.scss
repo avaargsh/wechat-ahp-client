@@ -1,0 +1,56 @@
+.page {
+  padding: 28rpx;
+}
+
+.card {
+  margin-top: 48rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+}
+
+.title {
+  display: block;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.hint {
+  display: block;
+  margin-top: 20rpx;
+  color: #666;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.codeInput {
+  margin-top: 36rpx;
+  padding: 24rpx;
+  border-radius: 18rpx;
+  background: #f3f3f3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 34rpx;
+  letter-spacing: 4rpx;
+}
+
+.error {
+  display: block;
+  margin-top: 18rpx;
+  color: #a33;
+  font-size: 24rpx;
+}
+
+.submit {
+  margin-top: 28rpx;
+  border-radius: 18rpx;
+  background: #111;
+  color: #fff;
+}
+
+.security {
+  display: block;
+  margin: 28rpx 12rpx;
+  color: #888;
+  font-size: 23rpx;
+  line-height: 1.6;
+}
