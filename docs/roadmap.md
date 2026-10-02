@@ -12,7 +12,7 @@
 - [x] demo approval command
 - [ ] real AHP tool-call subscription
 - [ ] dispatch AHP tool-call confirmation
-- [ ] reconcile pending approvals after relay restart
+- [x] reconcile pending approvals after relay reconnect/restart
 
 ## V0.2 — WeChat wake-up
 
