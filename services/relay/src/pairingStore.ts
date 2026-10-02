@@ -7,6 +7,7 @@ interface PairingRecord extends PairingTicket {
 
 interface SessionRecord extends MobileSession {
   expiresAtMs: number;
+  wechatOpenId?: string;
 }
 
 export class PairingStore {
@@ -43,6 +44,7 @@ export class PairingStore {
     rawCode: string,
     deviceName = 'WeChat Mini Program',
     now = Date.now(),
+    wechatOpenId?: string,
   ): MobileSession | undefined {
     this.cleanup(now);
 
@@ -61,6 +63,8 @@ export class PairingStore {
       deviceName: deviceName.trim().slice(0, 80) || 'WeChat Mini Program',
       expiresAt: new Date(expiresAtMs).toISOString(),
       expiresAtMs,
+      wechatOpenId,
+      wechatLinked: Boolean(wechatOpenId),
     };
     this.sessions.set(token, session);
 
@@ -95,7 +99,11 @@ export class PairingStore {
   }
 
   private publicSession(record: SessionRecord): MobileSession {
-    const { expiresAtMs: _ignored, ...session } = record;
+    const {
+      expiresAtMs: _expiresAtMs,
+      wechatOpenId: _wechatOpenId,
+      ...session
+    } = record;
     return session;
   }
 }
