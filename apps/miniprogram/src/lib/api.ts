@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro';
 import type {
+  ApiError,
   AttentionProjection,
   MobileSession,
   PairingClaimInput,
@@ -11,6 +12,7 @@ export class ApiRequestError extends Error {
   constructor(
     message: string,
     readonly statusCode: number,
+    readonly code?: ApiError['code'],
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -37,9 +39,11 @@ async function request<T>(
   });
 
   if (response.statusCode < 200 || response.statusCode >= 300) {
+    const body = response.data as Partial<ApiError>;
     throw new ApiRequestError(
-      (response.data as { error?: string })?.error ?? `HTTP ${response.statusCode}`,
+      body.error ?? `HTTP ${response.statusCode}`,
       response.statusCode,
+      body.code,
     );
   }
 
