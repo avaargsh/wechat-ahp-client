@@ -8,6 +8,7 @@ import {
   chatReducer,
   type ChatState,
   type SessionState,
+  type StateAction,
   type StringOrMarkdown,
 } from '@microsoft/agent-host-protocol';
 import type { Subscription, SubscriptionEvent } from '@microsoft/agent-host-protocol/client';
@@ -158,7 +159,7 @@ export class AhpAdapter {
       throw new Error('approval changed; refresh before deciding');
     }
 
-    const action = decision === 'allow_once'
+    const action: StateAction = decision === 'allow_once'
       ? {
           type: ActionType.ChatToolCallConfirmed,
           turnId: pending.turnId,
@@ -207,7 +208,10 @@ export class AhpAdapter {
     ) return;
 
     this.sequence = event.params.serverSeq;
-    this.state = chatReducer(this.state, event.params.action);
+    this.state = chatReducer(
+      this.state,
+      event.params.action as Parameters<typeof chatReducer>[1],
+    );
     this.syncPending(binding);
   }
 
