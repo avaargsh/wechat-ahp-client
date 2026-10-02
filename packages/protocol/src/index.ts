@@ -15,6 +15,25 @@ export type AttentionState =
 
 export type ResolveDecision = 'allow_once' | 'reject';
 
+export interface PairingTicket {
+  pairingId: string;
+  code: string;
+  machineId: string;
+  expiresAt: string;
+}
+
+export interface PairingClaimInput {
+  code: string;
+  deviceName?: string;
+}
+
+export interface MobileSession {
+  token: string;
+  machineId: string;
+  deviceName: string;
+  expiresAt: string;
+}
+
 export interface AttentionProjection {
   id: string;
   machineId: string;
@@ -38,6 +57,11 @@ export type ConnectorToRelay =
       machineId: string;
       displayName: string;
       version: string;
+    }
+  | {
+      type: 'pairing.create';
+      requestId: string;
+      machineId: string;
     }
   | {
       type: 'attention.snapshot';
@@ -66,13 +90,26 @@ export type ConnectorToRelay =
       attention?: AttentionProjection;
     };
 
-export type RelayToConnector = {
-  type: 'approval.resolve';
-  requestId: string;
-  attentionId: string;
-  expectedVersion: number;
-  decision: ResolveDecision;
-};
+export type RelayToConnector =
+  | {
+      type: 'pairing.create.result';
+      requestId: string;
+      ok: true;
+      ticket: PairingTicket;
+    }
+  | {
+      type: 'pairing.create.result';
+      requestId: string;
+      ok: false;
+      error: string;
+    }
+  | {
+      type: 'approval.resolve';
+      requestId: string;
+      attentionId: string;
+      expectedVersion: number;
+      decision: ResolveDecision;
+    };
 
 export interface ResolveAttentionInput {
   decision: ResolveDecision;
