@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { WebSocket } from 'ws';
 import type {
   AttentionProjection,
   ConnectorToRelay,
+  PairingTicket,
   RelayToConnector,
   ResolveDecision,
 } from '@wechat-ahp/protocol';
@@ -20,11 +22,18 @@ export interface RelayClientOptions {
   log(message: string): void;
 }
 
+interface PendingPairing {
+  resolve(ticket: PairingTicket): void;
+  reject(error: Error): void;
+  timer: NodeJS.Timeout;
+}
+
 export class RelayClient {
   private ws?: WebSocket;
   private reconnectTimer?: NodeJS.Timeout;
   private stopped = true;
   private attempts = 0;
+  private readonly pendingPairings = new Map<string, PendingPairing>();
 
   constructor(private readonly options: RelayClientOptions) {}
 
@@ -38,6 +47,7 @@ export class RelayClient {
     this.stopped = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
+    this.rejectPairings(new Error('relay connector stopped'));
     this.ws?.close(1000, 'stopped');
     this.ws = undefined;
   }
@@ -56,6 +66,29 @@ export class RelayClient {
 
   publishResolved(attention: AttentionProjection): void {
     this.send({ type: 'attention.resolved', attention });
+  }
+
+  createPairing(): Promise<PairingTicket> {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      return Promise.reject(new Error('relay is not connected'));
+    }
+
+    const requestId = randomUUID();
+    const promise = new Promise<PairingTicket>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingPairings.delete(requestId);
+        reject(new Error('pairing request timed out'));
+      }, 10_000);
+      this.pendingPairings.set(requestId, { resolve, reject, timer });
+    });
+
+    this.send({
+      type: 'pairing.create',
+      requestId,
+      machineId: this.options.machineId,
+    });
+
+    return promise;
   }
 
   private connect(): void {
@@ -95,11 +128,24 @@ export class RelayClient {
 
     ws.on('close', () => {
       if (this.ws === ws) this.ws = undefined;
+      this.rejectPairings(new Error('relay disconnected'));
       if (!this.stopped) this.scheduleReconnect();
     });
   }
 
   private async handle(message: RelayToConnector): Promise<void> {
+    if (message.type === 'pairing.create.result') {
+      const pending = this.pendingPairings.get(message.requestId);
+      if (!pending) return;
+
+      clearTimeout(pending.timer);
+      this.pendingPairings.delete(message.requestId);
+
+      if (message.ok) pending.resolve(message.ticket);
+      else pending.reject(new Error(message.error));
+      return;
+    }
+
     if (message.type !== 'approval.resolve') return;
 
     try {
@@ -129,6 +175,14 @@ export class RelayClient {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     }
+  }
+
+  private rejectPairings(error: Error): void {
+    for (const pending of this.pendingPairings.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    this.pendingPairings.clear();
   }
 
   private scheduleReconnect(): void {
