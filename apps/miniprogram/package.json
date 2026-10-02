@@ -1,0 +1,26 @@
+{
+  "name": "@wechat-ahp/miniprogram",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "taro build --type weapp --watch",
+    "build": "taro build --type weapp",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@wechat-ahp/protocol": "workspace:*",
+    "@tarojs/components": "^4.1.0",
+    "@tarojs/react": "^4.1.0",
+    "@tarojs/runtime": "^4.1.0",
+    "@tarojs/taro": "^4.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tarojs/cli": "^4.1.0",
+    "@tarojs/plugin-framework-react": "^4.1.0",
+    "@tarojs/webpack5-runner": "^4.1.0",
+    "@types/react": "^18.3.24",
+    "sass": "^1.93.2"
+  }
+}
