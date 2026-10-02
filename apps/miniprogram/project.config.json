@@ -1,0 +1,10 @@
+{
+  "miniprogramRoot": "dist/",
+  "projectname": "wechat-ahp-client",
+  "description": "AHP attention client",
+  "appid": "touristappid",
+  "setting": {
+    "es6": true,
+    "minified": false
+  }
+}
