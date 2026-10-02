@@ -10,6 +10,11 @@ interface SessionRecord extends MobileSession {
   wechatOpenId?: string;
 }
 
+export interface NotificationRecipient {
+  sessionToken: string;
+  openId: string;
+}
+
 export class PairingStore {
   private readonly pairings = new Map<string, PairingRecord>();
   private readonly sessions = new Map<string, SessionRecord>();
@@ -65,6 +70,7 @@ export class PairingStore {
       expiresAtMs,
       wechatOpenId,
       wechatLinked: Boolean(wechatOpenId),
+      notificationsEnabled: false,
     };
     this.sessions.set(token, session);
 
@@ -72,6 +78,55 @@ export class PairingStore {
   }
 
   authorize(token: string | undefined, now = Date.now()): MobileSession | undefined {
+    const session = this.activeSession(token, now);
+    return session ? this.publicSession(session) : undefined;
+  }
+
+  setNotificationsEnabled(
+    token: string | undefined,
+    enabled: boolean,
+    now = Date.now(),
+  ): MobileSession | undefined {
+    const session = this.activeSession(token, now);
+    if (!session || (enabled && !session.wechatOpenId)) return;
+
+    session.notificationsEnabled = enabled;
+    return this.publicSession(session);
+  }
+
+  notificationRecipients(
+    machineId: string,
+    now = Date.now(),
+  ): NotificationRecipient[] {
+    this.cleanup(now);
+
+    const seen = new Set<string>();
+    const result: NotificationRecipient[] = [];
+
+    for (const session of this.sessions.values()) {
+      if (
+        session.machineId !== machineId ||
+        !session.notificationsEnabled ||
+        !session.wechatOpenId
+      ) continue;
+
+      // A WeChat account may have paired multiple devices. One subscription
+      // consent should result in at most one send for the same OpenID.
+      if (seen.has(session.wechatOpenId)) continue;
+      seen.add(session.wechatOpenId);
+      result.push({
+        sessionToken: session.token,
+        openId: session.wechatOpenId,
+      });
+    }
+
+    return result;
+  }
+
+  private activeSession(
+    token: string | undefined,
+    now: number,
+  ): SessionRecord | undefined {
     if (!token) return;
     const session = this.sessions.get(token);
     if (!session) return;
@@ -81,7 +136,7 @@ export class PairingStore {
       return;
     }
 
-    return this.publicSession(session);
+    return session;
   }
 
   private cleanup(now: number): void {
