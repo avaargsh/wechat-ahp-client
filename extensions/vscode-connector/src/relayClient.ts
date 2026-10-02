@@ -11,6 +11,7 @@ export interface RelayClientOptions {
   connectorToken: string;
   machineId: string;
   displayName: string;
+  onConnected?(): void;
   onResolve(
     attentionId: string,
     decision: ResolveDecision,
@@ -51,11 +52,15 @@ export class RelayClient {
 
   private connect(): void {
     if (this.stopped) return;
+
     const url = new URL(this.options.relayUrl);
     url.searchParams.set('machineId', this.options.machineId);
-    url.searchParams.set('token', this.options.connectorToken);
 
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, {
+      headers: {
+        authorization: `Bearer ${this.options.connectorToken}`,
+      },
+    });
     this.ws = ws;
 
     ws.on('open', () => {
@@ -67,10 +72,15 @@ export class RelayClient {
         displayName: this.options.displayName,
         version: '0.0.1',
       });
+      this.options.onConnected?.();
     });
 
     ws.on('message', raw => {
-      void this.handle(JSON.parse(raw.toString()) as RelayToConnector);
+      try {
+        void this.handle(JSON.parse(raw.toString()) as RelayToConnector);
+      } catch {
+        this.options.log('Relay sent malformed JSON.');
+      }
     });
 
     ws.on('error', error => this.options.log(`Relay error: ${error.message}`));
@@ -83,12 +93,14 @@ export class RelayClient {
 
   private async handle(message: RelayToConnector): Promise<void> {
     if (message.type !== 'approval.resolve') return;
+
     try {
       const attention = await this.options.onResolve(
         message.attentionId,
         message.decision,
         message.expectedVersion,
       );
+
       this.send({
         type: 'approval.resolve.result',
         requestId: message.requestId,
