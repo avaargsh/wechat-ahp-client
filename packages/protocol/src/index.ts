@@ -34,6 +34,7 @@ export interface MobileSession {
   deviceName: string;
   expiresAt: string;
   wechatLinked?: boolean;
+  notificationsEnabled?: boolean;
 }
 
 export interface AttentionProjection {

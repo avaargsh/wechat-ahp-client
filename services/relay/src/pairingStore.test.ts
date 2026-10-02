@@ -41,3 +41,52 @@ test('paired session exposes only a linked flag, never the OpenID', () => {
   assert.equal(JSON.stringify(session).includes('openid-secret'), false);
   assert.equal(store.authorize(session.token, 2_500)?.wechatLinked, true);
 });
+
+test('notification consent is available only to WeChat-linked sessions', () => {
+  const store = new PairingStore(60_000, 120_000);
+
+  const unlinkedTicket = store.create('machine-a', 1_000);
+  const unlinked = store.claim(unlinkedTicket.code, 'browser', 1_500)!;
+  assert.equal(store.setNotificationsEnabled(unlinked.token, true, 2_000), undefined);
+
+  const linkedTicket = store.create('machine-a', 3_000);
+  const linked = store.claim(linkedTicket.code, 'iPhone', 3_500, 'openid-a')!;
+  const enabled = store.setNotificationsEnabled(linked.token, true, 4_000);
+
+  assert.equal(enabled?.notificationsEnabled, true);
+  assert.deepEqual(store.notificationRecipients('machine-a', 4_500), [
+    { sessionToken: linked.token, openId: 'openid-a' },
+  ]);
+
+  store.setNotificationsEnabled(linked.token, false, 5_000);
+  assert.deepEqual(store.notificationRecipients('machine-a', 5_500), []);
+});
+
+test('duplicate sessions for one OpenID produce one notification recipient', () => {
+  const store = new PairingStore(60_000, 120_000);
+
+  const ticketA = store.create('machine-a', 1_000);
+  const a = store.claim(ticketA.code, 'iPhone', 1_500, 'same-openid')!;
+  store.setNotificationsEnabled(a.token, true, 2_000);
+
+  const ticketB = store.create('machine-a', 3_000);
+  const b = store.claim(ticketB.code, 'iPad', 3_500, 'same-openid')!;
+  store.setNotificationsEnabled(b.token, true, 4_000);
+
+  assert.equal(store.notificationRecipients('machine-a', 5_000).length, 1);
+});
+
+test('one notification attempt consumes consent across duplicate sessions', () => {
+  const store = new PairingStore(60_000, 120_000);
+
+  const ticketA = store.create('machine-a', 1_000);
+  const a = store.claim(ticketA.code, 'iPhone', 1_500, 'same-openid')!;
+  store.setNotificationsEnabled(a.token, true, 2_000);
+
+  const ticketB = store.create('machine-a', 3_000);
+  const b = store.claim(ticketB.code, 'iPad', 3_500, 'same-openid')!;
+  store.setNotificationsEnabled(b.token, true, 4_000);
+
+  store.consumeNotificationConsent('machine-a', 'same-openid', 5_000);
+  assert.deepEqual(store.notificationRecipients('machine-a', 5_500), []);
+});

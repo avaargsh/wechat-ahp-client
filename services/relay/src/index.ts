@@ -14,6 +14,7 @@ import type {
 import { AttentionStore } from './store.js';
 import { PairingStore } from './pairingStore.js';
 import { WeChatAuth } from './wechatAuth.js';
+import { NotificationJournal, WeChatNotifier } from './wechatNotification.js';
 
 const port = Number(process.env.PORT ?? 8787);
 const legacyMobileToken = process.env.MOBILE_TOKEN;
@@ -23,6 +24,8 @@ const resolveTimeoutMs = Number(process.env.RESOLVE_TIMEOUT_MS ?? 10_000);
 const attentions = new AttentionStore();
 const pairings = new PairingStore();
 const wechatAuth = new WeChatAuth();
+const notifier = new WeChatNotifier();
+const notificationJournal = new NotificationJournal();
 const connectors = new Map<string, WebSocket>();
 const pendingResolutions = new Map<string, {
   resolve: (value: AttentionProjection) => void;
@@ -31,6 +34,7 @@ const pendingResolutions = new Map<string, {
 }>();
 
 interface AuthContext {
+  token: string;
   machineId?: string;
   session?: MobileSession;
   legacy: boolean;
@@ -58,6 +62,7 @@ function authorize(req: IncomingMessage): AuthContext | undefined {
   const session = pairings.authorize(token);
   if (session) {
     return {
+      token,
       machineId: session.machineId,
       session,
       legacy: false,
@@ -65,7 +70,7 @@ function authorize(req: IncomingMessage): AuthContext | undefined {
   }
 
   if (legacyMobileToken && token === legacyMobileToken) {
-    return { legacy: true };
+    return { token, legacy: true };
   }
 }
 
@@ -85,6 +90,24 @@ async function readJson<T>(req: IncomingMessage): Promise<T> {
 function send(ws: WebSocket, message: RelayToConnector): void {
   if (ws.readyState !== WebSocket.OPEN) throw new Error('connector is not open');
   ws.send(JSON.stringify(message));
+}
+
+async function notifyAttention(attention: AttentionProjection): Promise<void> {
+  if (!notifier.enabled || attention.state !== 'pending') return;
+
+  for (const recipient of pairings.notificationRecipients(attention.machineId)) {
+    if (!notificationJournal.begin(recipient.openId, attention.id)) continue;
+
+    try {
+      await notifier.send(recipient.openId, attention);
+    } catch (error) {
+      console.warn('WeChat notification send failed', error);
+    } finally {
+      // Treat subscription consent as one-shot. A later notification requires
+      // an explicit requestSubscribeMessage opt-in again.
+      pairings.consumeNotificationConsent(attention.machineId, recipient.openId);
+    }
+  }
 }
 
 async function resolveAttention(
@@ -180,6 +203,31 @@ const server = createServer(async (req, res) => {
         deviceName: 'legacy development token',
         expiresAt: null,
       });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/notifications/config') {
+      json(res, 200, notifier.publicConfig());
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/notifications/enable') {
+      const input = await readJson<{ enabled?: boolean }>(req);
+      const session = pairings.setNotificationsEnabled(
+        auth.token,
+        input.enabled !== false,
+      );
+
+      if (!session) {
+        return apiError(
+          res,
+          400,
+          'bad_request',
+          'WeChat-linked paired session is required for notifications',
+        );
+      }
+
+      json(res, 200, session);
       return;
     }
 
@@ -297,7 +345,24 @@ server.on('upgrade', (req, socket, head) => {
           return;
         }
 
-        if (message.type === 'attention.upsert' || message.type === 'attention.resolved') {
+        if (message.type === 'attention.upsert') {
+          if (message.attention.machineId !== machineId) {
+            throw new Error('attention machine does not match authenticated connector');
+          }
+
+          const before = attentions.get(message.attention.id);
+          const after = attentions.upsert(message.attention);
+          if (
+            after === message.attention &&
+            after.state === 'pending' &&
+            (!before || before.state !== 'pending')
+          ) {
+            void notifyAttention(after);
+          }
+          return;
+        }
+
+        if (message.type === 'attention.resolved') {
           if (message.attention.machineId !== machineId) {
             throw new Error('attention machine does not match authenticated connector');
           }

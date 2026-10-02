@@ -2,7 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
 import { Button, Text, View } from '@tarojs/components';
 import type { AttentionProjection } from '@wechat-ahp/protocol';
-import { ApiRequestError, listPending } from '../../lib/api';
+import {
+  ApiRequestError,
+  getNotificationConfig,
+  listPending,
+  setNotificationsEnabled,
+} from '../../lib/api';
 import { clearMobileToken, hasMobileToken } from '../../config';
 import './index.scss';
 
@@ -11,6 +16,7 @@ export default function InboxPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [paired, setPaired] = useState(hasMobileToken());
+  const [enablingNotifications, setEnablingNotifications] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!hasMobileToken()) {
@@ -57,11 +63,61 @@ export default function InboxPage() {
     void Taro.navigateTo({ url: '/pages/pair/index' });
   };
 
+  const enableNextNotification = async () => {
+    if (enablingNotifications) return;
+    setEnablingNotifications(true);
+
+    try {
+      const config = await getNotificationConfig();
+      if (!config.enabled || !config.templateId) {
+        await Taro.showToast({ title: 'Relay 未配置微信提醒', icon: 'none' });
+        return;
+      }
+
+      // Taro 4.3's cross-platform type currently makes Alipay entityIds
+      // required even for a WeChat-only tmplIds request. Keep the runtime
+      // payload strictly WeChat-shaped and narrow through unknown here.
+      const subscribeRequest = {
+        tmplIds: [config.templateId],
+      } as unknown as Parameters<typeof Taro.requestSubscribeMessage>[0];
+      const result = await Taro.requestSubscribeMessage(subscribeRequest);
+      const decision = (result as unknown as Record<string, unknown>)[config.templateId];
+
+      if (decision !== 'accept') {
+        await Taro.showToast({ title: '未开启提醒', icon: 'none' });
+        return;
+      }
+
+      await setNotificationsEnabled(true);
+      await Taro.showToast({ title: '下次审批将微信提醒', icon: 'success' });
+    } catch (err) {
+      await Taro.showToast({
+        title: err instanceof Error ? err.message : '开启提醒失败',
+        icon: 'none',
+      });
+    } finally {
+      setEnablingNotifications(false);
+    }
+  };
+
   return (
     <View className='page'>
       <View className='header'>
-        <Text className='title'>待审批</Text>
-        {paired && <Text className='count'>{items.length}</Text>}
+        <View className='headerTitle'>
+          <Text className='title'>待审批</Text>
+          {paired && <Text className='count'>{items.length}</Text>}
+        </View>
+        {paired && (
+          <Button
+            className='notify'
+            size='mini'
+            loading={enablingNotifications}
+            disabled={enablingNotifications}
+            onClick={() => void enableNextNotification()}
+          >
+            开启下次提醒
+          </Button>
+        )}
       </View>
 
       {!paired && !loading && (

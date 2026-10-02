@@ -18,10 +18,10 @@
 - [x] wx.login / code2Session
 - [x] one-time device pairing code
 - [x] QR scan pairing UX
-- subscribe-message opt-in
-- safe notification projection
-- deep-link to approval detail
-- notification send journal
+- [x] subscribe-message opt-in
+- [x] safe notification projection
+- [x] deep-link to approval detail
+- [x] in-memory notification send journal
 
 ## V1 — Agent Remote
 

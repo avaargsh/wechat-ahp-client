@@ -41,6 +41,21 @@ When both WeChat credentials are absent, identity verification is disabled so to
 
 For transitional local development only, setting `MOBILE_TOKEN` enables the old unscoped bearer-token path. There is no default `dev-mobile` fallback anymore.
 
+## Subscription-message wake-up
+
+Notification consent is explicit and treated as one-shot:
+
+1. the Mini Program calls `requestSubscribeMessage` for the configured template;
+2. only an accepted result enables the next relay notification;
+3. a new live pending Attention triggers at most one send per OpenID + Attention ID;
+4. the relay consumes notification consent after that send attempt.
+
+The notification projection intentionally has no placeholders for command text, prompt text, repository paths, working directories, session titles, or tool input. The only dynamic placeholder currently supported is `{{kind}}`, mapped to a generic category such as “命令执行” or “文件修改”. The deep link contains only the opaque Attention ID.
+
+`WX_SUBSCRIBE_TEMPLATE_DATA` defines template field names because WeChat template schemas are account-specific. The relay obtains an API access token server-side and never exposes it to the Mini Program.
+
+The current send journal and notification consent state are in memory. A relay restart therefore loses them; snapshot reconciliation does not send notifications, which avoids replaying old pending approvals after restart.
+
 ## Fail closed
 
 If the connector is offline, the relay cannot confirm current Host state. Approval therefore fails rather than being queued for later execution.
