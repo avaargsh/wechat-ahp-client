@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "kind": "WeChatAHPRealDeviceAcceptance",
+  "mode": "real-device",
+  "recordedAt": "2026-10-05T00:00:00Z",
+  "host": {
+    "machineId": "contract-fixture",
+    "agentHost": "VS Code Agent Host / AHP"
+  },
+  "pairing": {
+    "qrClaimed": true,
+    "wechatLinked": true
+  },
+  "attention": {
+    "opaqueId": "attention-contract-fixture",
+    "pendingVisible": true
+  },
+  "notification": {
+    "consentAccepted": true,
+    "deepLinkAttentionId": "attention-contract-fixture",
+    "deepLinkOpenedSameAttention": true
+  },
+  "decision": {
+    "value": "allow_once",
+    "authoritativePreflight": true,
+    "hostAckObserved": true,
+    "terminalProjectionObserved": true
+  },
+  "negativeControls": {
+    "offlineFailsClosed": true,
+    "staleFailsClosed": true,
+    "conflictingDecisionFailsClosed": true
+  },
+  "notes": "Synthetic contract fixture only; not real-device evidence."
+}
