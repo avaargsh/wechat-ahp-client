@@ -31,7 +31,7 @@
 - [x] fail closed on conflicting cross-device decisions
 - [x] reconcile stale Host state before returning resolve conflict
 - [x] prevent equal-version stale pending projection from reopening terminal state
-- [ ] verify end-to-end on a real WeChat device + VS Code Agent Host
+- [ ] verify end-to-end on a real WeChat device + VS Code Agent Host (runbook: `docs/real-device-acceptance.md`)
 
 ## V1 — Agent Remote
 
