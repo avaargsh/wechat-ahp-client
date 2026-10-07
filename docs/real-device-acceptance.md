@@ -11,6 +11,8 @@ builds do not satisfy this milestone.
 - The Mini Program uses the intended subscription-message template.
 - VS Code Connector is connected to the relay and a real Agent Host/Codex chat.
 - No development `MOBILE_TOKEN` path is used for the acceptance run.
+- Build the Connector and Mini Program from the same clean commit; record its
+  full SHA from `git rev-parse HEAD` in `source.commitSha`.
 
 ## Golden path
 
@@ -48,15 +50,37 @@ only after each step was actually observed, then run:
 
 ```bash
 pnpm test:real-device-contract
-node scripts/verify-real-device-acceptance.mjs /path/to/real-device-evidence.json
+# Run from the same clean checkout that was built and exercised on the device.
+AHP_TESTED_COMMIT="$(git rev-parse HEAD)"
+node scripts/verify-real-device-acceptance.mjs /path/to/real-device-evidence.json --expected-commit "$AHP_TESTED_COMMIT"
 ```
 
 The evidence file intentionally stores no command text, tool input, repository
 paths, Connector token, mobile token, WeChat session key, AppSecret, or access
 token.
 
-A passing JSON verifier proves that the operator recorded every required
-observation. It does **not** replace the actual device/Host run.
+A passing JSON verifier checks that the operator recorded every required
+observation against the commit under review, including the original Host session
+outcome and the duplicate-decision negative control. It does **not** independently
+verify those observations or replace the actual device/Host run.
+
+The v2 contract separates `mode: real-device` from `mode: contract-fixture`.
+The committed fixture is synthetic and is rejected by the normal verification
+command. `pnpm test:real-device-contract` runs negative tests and explicitly uses
+`--allow-fixture`; its summary always has `eligibleForRealDeviceReview: false`.
+Never use that CI result to mark the device milestone complete.
+
+Real records require `--expected-commit` and a matching `source.commitSha`.
+Their summaries say `observationBasis: operator-recorded` and
+`liveExecutionVerified: false`: a matching record is eligible for human review,
+not an independent execution proof. A SHA field is a build identifier, not a
+signature or proof that the device ran that build. Schema v1 records are rejected;
+recapture missing observations using the v2 template rather than filling in
+unobserved facts to make an old record pass.
+
+The verifier rejects known sensitive field names (including snake_case and
+case variants), but it is not a content-redaction service. Inspect free-text
+values before retaining evidence or linking it from a PR.
 
 ## Release decision
 
