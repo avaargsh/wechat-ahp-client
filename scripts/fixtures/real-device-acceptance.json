@@ -1,8 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "WeChatAHPRealDeviceAcceptance",
-  "mode": "real-device",
+  "mode": "contract-fixture",
   "recordedAt": "2026-10-05T00:00:00Z",
+  "source": {
+    "commitSha": "1111111111111111111111111111111111111111",
+    "cleanWorktree": true
+  },
   "host": {
     "machineId": "contract-fixture",
     "agentHost": "VS Code Agent Host / AHP"
@@ -24,12 +28,14 @@
     "value": "allow_once",
     "authoritativePreflight": true,
     "hostAckObserved": true,
-    "terminalProjectionObserved": true
+    "terminalProjectionObserved": true,
+    "originalSessionOutcomeObserved": true
   },
   "negativeControls": {
     "offlineFailsClosed": true,
     "staleFailsClosed": true,
-    "conflictingDecisionFailsClosed": true
+    "conflictingDecisionFailsClosed": true,
+    "duplicateDecisionCoalesces": true
   },
   "notes": "Synthetic contract fixture only; not real-device evidence."
 }

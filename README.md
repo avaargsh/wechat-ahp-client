@@ -68,16 +68,17 @@ For Mini Program development, set the relay HTTP origin in
 For a real Mini Program identity, configure `WX_APPID` and `WX_APP_SECRET` on
 the relay; local tourist builds can leave both unset.
 
-## Still intentionally missing
+## Implemented wake-up and remaining acceptance
 
-The next slice is **WeChat wake-up**, not more IDE surface:
+The code now includes `wx.login` / `code2Session`, one-time QR pairing,
+subscription-message opt-in, generic notification text, approval deep links,
+and pending-Attention reconstruction from the Connector after relay restart.
+Pairing sessions and notification consent/journals remain in memory.
 
-1. `wx.login` / `code2Session`
-2. QR device pairing
-3. subscription-message opt-in
-4. safe notification projection
-5. deep-link into the approval detail
-6. reconciliation/persistence so a relay restart can rebuild pending Attention
+**Real WeChat device + live VS Code Agent Host acceptance is still pending.**
+Use [the acceptance runbook](docs/real-device-acceptance.md) to retain observations
+bound to the tested commit. CI checks a clearly labelled synthetic contract
+fixture; it does not prove notification delivery or Host continuation on a phone.
 
 Session timeline, changesets/diff, terminal, and CCC-style navigation come after the Attention loop is proven.
 
