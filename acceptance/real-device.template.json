@@ -1,8 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "WeChatAHPRealDeviceAcceptance",
   "mode": "real-device",
   "recordedAt": "CHANGE-ME-ISO8601",
+  "source": {
+    "commitSha": "CHANGE-ME-tested-full-git-SHA",
+    "cleanWorktree": false
+  },
   "host": {
     "machineId": "CHANGE-ME-machine",
     "agentHost": "VS Code Agent Host / AHP"
@@ -24,12 +28,14 @@
     "value": "allow_once",
     "authoritativePreflight": false,
     "hostAckObserved": false,
-    "terminalProjectionObserved": false
+    "terminalProjectionObserved": false,
+    "originalSessionOutcomeObserved": false
   },
   "negativeControls": {
     "offlineFailsClosed": false,
     "staleFailsClosed": false,
-    "conflictingDecisionFailsClosed": false
+    "conflictingDecisionFailsClosed": false,
+    "duplicateDecisionCoalesces": false
   },
   "notes": "Record observations only. Do not paste commands, tool input, repository paths, tokens, session_key, AppSecret, or access tokens."
 }

@@ -7,7 +7,7 @@
     "build": "pnpm --filter @wechat-ahp/protocol build && pnpm --filter @wechat-ahp/relay build && pnpm --filter wechat-ahp-vscode-connector build && pnpm --filter @wechat-ahp/miniprogram build",
     "typecheck": "pnpm --filter @wechat-ahp/protocol build && pnpm --filter @wechat-ahp/relay typecheck && pnpm --filter wechat-ahp-vscode-connector typecheck && pnpm --filter @wechat-ahp/miniprogram typecheck",
     "test": "pnpm --filter @wechat-ahp/protocol build && pnpm --filter @wechat-ahp/relay test && pnpm test:real-device-contract",
-    "test:real-device-contract": "node scripts/verify-real-device-acceptance.mjs scripts/fixtures/real-device-acceptance.json"
+    "test:real-device-contract": "node --test scripts/verify-real-device-acceptance.test.mjs && node scripts/verify-real-device-acceptance.mjs scripts/fixtures/real-device-acceptance.json --allow-fixture"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
