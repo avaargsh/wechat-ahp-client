@@ -37,6 +37,9 @@ Run these on the same build:
 - stop the Connector, attempt a decision, and confirm **offline fails closed**;
 - resolve the approval in VS Code first, then act on the stale phone view and
   confirm **stale fails closed + refreshes**;
+- change a pending action's version or displayed scope after opening its mobile
+  detail; confirm the first tap only refreshes with a review-required message,
+  sends no resolve, and a separate tap is needed after reviewing the new content;
 - issue opposite decisions from two clients and confirm the conflicting path
   **fails closed**;
 - retry the same decision and confirm it coalesces rather than dispatching a

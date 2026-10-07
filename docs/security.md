@@ -10,6 +10,10 @@
 6. Resolve is idempotent and version-checked.
 7. The default decision surface exposes only **Allow Once** and **Reject**.
 8. A paired mobile session is scoped to exactly one `machineId`.
+9. A mobile decision is bound to the displayed identity, version, and action
+   summary. If preflight returns different content, refresh the view and require
+   another explicit Allow Once / Reject; never substitute the new version into
+   the original decision. The Connector/Host still enforce live authority.
 
 ## Connector authentication
 
