@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AttentionProjection, ResolveDecision } from '@wechat-ahp/protocol';
-import { submitReviewedApproval } from '../src/lib/approval';
+import { claimApprovalFlight, releaseApprovalFlight, submitReviewedApproval } from '../src/lib/approval';
 
 const displayed: AttentionProjection = {
   id: 'att-reviewed',
@@ -135,4 +135,52 @@ test('preflight failures and Host conflicts propagate without automatic retries'
     }), error => error === conflict);
     assert.equal(calls, 1);
   }
+});
+
+test('single-flight fence prevents two decisions before UI rerenders', async () => {
+  const fence = { current: false };
+  let finish!: (value: AttentionProjection) => void;
+  const hostAck = new Promise<AttentionProjection>(resolve => { finish = resolve; });
+  let dispatches = 0;
+  const click = async (decision: ResolveDecision) => {
+    if (!claimApprovalFlight(fence)) return 'suppressed' as const;
+    try {
+      return await submitReviewedApproval(displayed, decision, {
+        read: async () => displayed,
+        resolve: async () => { dispatches++; return hostAck; },
+      });
+    } finally {
+      releaseApprovalFlight(fence);
+    }
+  };
+
+  const first = click('allow_once');
+  assert.equal(fence.current, true, 'fence must be synchronous');
+  assert.equal(await click('reject'), 'suppressed');
+  await Promise.resolve();
+  assert.equal(dispatches, 1);
+  finish({ ...displayed, state: 'resolved_allow', version: 8 });
+  const result = await first;
+  assert.notEqual(result, 'suppressed');
+  assert.equal(fence.current, false);
+});
+
+test('single-flight fence is released after a Host error', async () => {
+  const fence = { current: false };
+  const failure = new Error('host unavailable');
+  const attempt = async () => {
+    if (!claimApprovalFlight(fence)) return;
+    try {
+      await submitReviewedApproval(displayed, 'allow_once', {
+        read: async () => displayed,
+        resolve: async () => { throw failure; },
+      });
+    } finally {
+      releaseApprovalFlight(fence);
+    }
+  };
+  await assert.rejects(attempt(), error => error === failure);
+  assert.equal(fence.current, false);
+  assert.equal(claimApprovalFlight(fence), true);
+  releaseApprovalFlight(fence);
 });
