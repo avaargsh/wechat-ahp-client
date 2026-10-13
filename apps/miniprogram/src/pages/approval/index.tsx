@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { Button, Text, View } from '@tarojs/components';
 import type { AttentionProjection, ResolveDecision } from '@wechat-ahp/protocol';
@@ -41,6 +41,9 @@ export default function ApprovalPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState<ResolveDecision>();
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>();
+  // State disables rendered buttons, while this ref closes the same-render
+  // double-tap window before React/Taro publishes the next render.
+  const decisionInFlight = useRef(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -61,7 +64,8 @@ export default function ApprovalPage() {
   });
 
   const decide = async (decision: ResolveDecision) => {
-    if (!item || item.state !== 'pending' || submitting) return;
+    if (!item || item.state !== 'pending' || submitting || decisionInFlight.current) return;
+    decisionInFlight.current = true;
 
     setSubmitting(decision);
     setSubmitPhase('checking');
@@ -98,6 +102,7 @@ export default function ApprovalPage() {
         // Keep the actionable resolve error if refresh also fails.
       }
     } finally {
+      decisionInFlight.current = false;
       setSubmitting(undefined);
       setSubmitPhase(undefined);
     }
