@@ -4,6 +4,21 @@ import type {
   ResolveDecision,
 } from '@wechat-ahp/protocol';
 
+// Synchronize a tap immediately; React state updates are not synchronous.
+export interface ApprovalFlightFence {
+  current: boolean;
+}
+
+export function claimApprovalFlight(fence: ApprovalFlightFence): boolean {
+  if (fence.current) return false;
+  fence.current = true;
+  return true;
+}
+
+export function releaseApprovalFlight(fence: ApprovalFlightFence): void {
+  fence.current = false;
+}
+
 interface ApprovalClient {
   read(id: string): Promise<AttentionProjection>;
   resolve(id: string, input: ResolveAttentionInput): Promise<AttentionProjection>;
