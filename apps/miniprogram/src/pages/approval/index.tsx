@@ -7,7 +7,7 @@ import {
   getAttention,
   resolveAttention,
 } from '../../lib/api';
-import { submitReviewedApproval } from '../../lib/approval';
+import { claimApprovalFlight, releaseApprovalFlight, submitReviewedApproval } from '../../lib/approval';
 import './index.scss';
 
 type SubmitPhase = 'checking' | 'waiting_host';
@@ -64,8 +64,7 @@ export default function ApprovalPage() {
   });
 
   const decide = async (decision: ResolveDecision) => {
-    if (!item || item.state !== 'pending' || submitting || decisionInFlight.current) return;
-    decisionInFlight.current = true;
+    if (!item || item.state !== 'pending' || submitting || !claimApprovalFlight(decisionInFlight)) return;
 
     setSubmitting(decision);
     setSubmitPhase('checking');
@@ -102,7 +101,7 @@ export default function ApprovalPage() {
         // Keep the actionable resolve error if refresh also fails.
       }
     } finally {
-      decisionInFlight.current = false;
+      releaseApprovalFlight(decisionInFlight);
       setSubmitting(undefined);
       setSubmitPhase(undefined);
     }
