@@ -87,7 +87,13 @@ export default function ApprovalPage() {
         return;
       }
       if (decision === 'allow_once' && result.attention.state === 'resolved_allow') {
-        await Taro.vibrateShort({ type: 'light' });
+        // Haptics are optional UI feedback. A device/permission failure must
+        // not turn a confirmed Host ACK into a misleading approval error.
+        try {
+          await Taro.vibrateShort({ type: 'light' });
+        } catch {
+          // Authoritative resolved state is already reflected above.
+        }
       }
     } catch (err) {
       setError(resolveErrorMessage(err));
