@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Taro, { useDidShow, useRouter } from '@tarojs/taro';
 import { Button, Text, View } from '@tarojs/components';
 import type { AttentionProjection, ResolveDecision } from '@wechat-ahp/protocol';
@@ -7,6 +7,7 @@ import {
   getAttention,
   resolveAttention,
 } from '../../lib/api';
+import { claimApprovalFlight, releaseApprovalFlight, submitReviewedApproval } from '../../lib/approval';
 import './index.scss';
 
 type SubmitPhase = 'checking' | 'waiting_host';
@@ -40,6 +41,9 @@ export default function ApprovalPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState<ResolveDecision>();
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>();
+  // State disables rendered buttons, while this ref closes the same-render
+  // double-tap window before React/Taro publishes the next render.
+  const decisionInFlight = useRef(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -60,32 +64,36 @@ export default function ApprovalPage() {
   });
 
   const decide = async (decision: ResolveDecision) => {
-    if (!item || item.state !== 'pending' || submitting) return;
+    if (!item || item.state !== 'pending' || submitting || !claimApprovalFlight(decisionInFlight)) return;
 
     setSubmitting(decision);
     setSubmitPhase('checking');
     setError('');
 
     try {
-      // The detail shown on screen is only a projection. Re-read it immediately
-      // before every side effect so a desktop/other-mobile decision wins first.
-      const latest = await getAttention(id);
-      setItem(latest);
+      const result = await submitReviewedApproval(item, decision, {
+        read: getAttention,
+        resolve: resolveAttention,
+        onDispatch: () => setSubmitPhase('waiting_host'),
+      });
+      setItem(result.attention);
 
-      if (latest.state !== 'pending') {
+      if (result.status === 'changed') {
+        setError('请求内容或版本已变化，请查看最新内容后再次选择。');
+        return;
+      }
+      if (result.status === 'already_resolved') {
         setError('该请求已在其他端处理，已显示最新状态。');
         return;
       }
-
-      setSubmitPhase('waiting_host');
-      const next = await resolveAttention(latest.id, {
-        decision,
-        expectedVersion: latest.version,
-      });
-
-      setItem(next);
-      if (decision === 'allow_once') {
-        await Taro.vibrateShort({ type: 'light' });
+      if (decision === 'allow_once' && result.attention.state === 'resolved_allow') {
+        // Haptics are optional UI feedback. A device/permission failure must
+        // not turn a confirmed Host ACK into a misleading approval error.
+        try {
+          await Taro.vibrateShort({ type: 'light' });
+        } catch {
+          // Authoritative resolved state is already reflected above.
+        }
       }
     } catch (err) {
       setError(resolveErrorMessage(err));
@@ -99,6 +107,7 @@ export default function ApprovalPage() {
         // Keep the actionable resolve error if refresh also fails.
       }
     } finally {
+      releaseApprovalFlight(decisionInFlight);
       setSubmitting(undefined);
       setSubmitPhase(undefined);
     }

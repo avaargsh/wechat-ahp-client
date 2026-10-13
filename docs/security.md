@@ -10,6 +10,8 @@
 6. Resolve is idempotent and version-checked.
 7. The default decision surface exposes only **Allow Once** and **Reject**.
 8. A paired mobile session is scoped to exactly one `machineId`.
+9. Changing approval identity/version/visible action invalidates the displayed decision; the user must re-review before a new tap.
+10. Rapid opposite taps in one render turn are fenced locally; Host CAS remains the authoritative safety check.
 
 ## Connector authentication
 
