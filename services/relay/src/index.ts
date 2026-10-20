@@ -420,5 +420,7 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 server.listen(port, '0.0.0.0', () => {
-  console.log(`wechat-ahp relay listening on :${port}`);
+  const address = server.address();
+  const actualPort = address && typeof address !== 'string' ? address.port : port;
+  console.log(`wechat-ahp relay listening on :${actualPort}`);
 });
