@@ -82,6 +82,19 @@
   width: 220rpx;
 }
 
+.unbind {
+  margin: 48rpx auto 12rpx;
+  background: transparent;
+  color: #A33;
+  border: 0;
+  box-shadow: none;
+  font-size: 24rpx;
+}
+
+.unbind::after {
+  border: 0;
+}
+
 .notify {
   margin: 0;
   border-radius: 999rpx;
