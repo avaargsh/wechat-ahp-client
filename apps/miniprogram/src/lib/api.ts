@@ -21,7 +21,7 @@ export class ApiRequestError extends Error {
 
 async function request<T>(
   url: string,
-  method: 'GET' | 'POST' = 'GET',
+  method: 'GET' | 'POST' | 'DELETE' = 'GET',
   data?: unknown,
   authenticated = true,
 ): Promise<T> {
@@ -59,6 +59,11 @@ export async function claimPairing(input: PairingClaimInput): Promise<MobileSess
   );
   setMobileToken(session.token);
   return session;
+}
+
+/** Invalidate this device's paired token at the Relay before local logout. */
+export function revokeMobileSession(): Promise<void> {
+  return request<void>('/api/session', 'DELETE');
 }
 
 export async function listPending(): Promise<AttentionProjection[]> {
