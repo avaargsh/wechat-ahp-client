@@ -210,6 +210,19 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'DELETE' && url.pathname === '/api/session') {
+      // Legacy development tokens are not paired device credentials.
+      if (auth.legacy) {
+        return apiError(res, 403, 'unauthorized', 'paired mobile session required');
+      }
+      if (!pairings.revoke(auth.token)) {
+        return apiError(res, 401, 'unauthorized', 'mobile session already revoked');
+      }
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/notifications/config') {
       json(res, 200, notifier.publicConfig());
       return;
