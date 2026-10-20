@@ -36,6 +36,7 @@ WeChat Mini Program
 - authenticated thin relay with version-checked resolve requests
 - Taro/React Mini Program inbox and approval detail UI
 - resolved-elsewhere projection when the approval disappears on another client
+- paired-device server-side unpair (`DELETE /api/session`), with old token invalidated and other devices unaffected
 
 ## Local development
 
