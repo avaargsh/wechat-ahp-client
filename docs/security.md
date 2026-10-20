@@ -10,6 +10,7 @@
 6. Resolve is idempotent and version-checked.
 7. The default decision surface exposes only **Allow Once** and **Reject**.
 8. A paired mobile session is scoped to exactly one `machineId`.
+9. A user can explicitly revoke the paired token at the Relay; clearing mobile local storage alone is not revocation.
 
 ## Connector authentication
 
@@ -27,6 +28,28 @@ The normal mobile flow no longer depends on a shared default bearer token.
 6. Attention list/detail/resolve endpoints enforce that machine scope.
 
 Pairing codes are deleted after a successful claim. Mobile sessions currently live in relay memory and therefore intentionally expire on relay restart; persistence is a later hardening step.
+
+## Device unpair and credential revocation
+
+A paired Mini Program device can call `DELETE /api/session` with its current
+`Authorization: Bearer <paired-session-token>`. On success the Relay removes
+**only that token** (204 No Content), immediately denying new API requests using
+it (401). Any pending one-shot WeChat notification consent held by that session
+is also removed. Other paired devices and the native Coding Agent session are
+unaffected.
+
+The legacy `MOBILE_TOKEN` development bypass is not a paired device session:
+`DELETE /api/session` refuses it (403) and must not be used for real-device
+acceptance. A second delete with the revoked token yields 401. This server-side
+revocation is in-memory, matching the existing in-memory session store.
+
+The Mini Program clears its local token only on successful revocation or a
+confirmed 401. On a network/timeout error it keeps the token and asks the user
+to retry: local-only logout would falsely imply the remote credential was
+invalidated. Revocation denies **future** requests; an already-authorized and
+in-flight approval may still complete, so do not describe it as cancellation of
+an existing Host action. Later multi-device UI must expose server-side device
+inventory and targeted revocation before claiming remote device management.
 
 ## WeChat identity binding
 
