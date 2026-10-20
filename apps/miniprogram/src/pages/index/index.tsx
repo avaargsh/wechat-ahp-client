@@ -6,6 +6,7 @@ import {
   ApiRequestError,
   getNotificationConfig,
   listPending,
+  revokeMobileSession,
   setNotificationsEnabled,
 } from '../../lib/api';
 import { clearMobileToken, hasMobileToken } from '../../config';
@@ -17,6 +18,7 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
   const [paired, setPaired] = useState(hasMobileToken());
   const [enablingNotifications, setEnablingNotifications] = useState(false);
+  const [unpairing, setUnpairing] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!hasMobileToken()) {
@@ -30,7 +32,14 @@ export default function InboxPage() {
     setPaired(true);
     try {
       setError('');
-      setItems(await listPending());
+      const latest = await listPending();
+      // A pending refresh must not repaint data after local unpair.
+      if (!hasMobileToken()) {
+        setPaired(false);
+        setItems([]);
+        return;
+      }
+      setItems(latest);
     } catch (err) {
       if (err instanceof ApiRequestError && err.statusCode === 401) {
         clearMobileToken();
@@ -52,6 +61,41 @@ export default function InboxPage() {
 
   useDidShow(() => void refresh());
   usePullDownRefresh(() => void refresh());
+
+  const unpair = async () => {
+    if (unpairing) return;
+    const decision = await Taro.showModal({
+      title: '解除设备绑定',
+      content: '将在中继端撤销此手机的访问凭据。其他设备和电脑上的 Codex 任务不受影响。',
+      confirmText: '解除绑定',
+      confirmColor: '#B42318',
+    });
+    if (!decision.confirm) return;
+
+    setUnpairing(true);
+    try {
+      await revokeMobileSession();
+      clearMobileToken();
+      setPaired(false);
+      setItems([]);
+      setError('');
+      await Taro.showToast({ title: '已解除绑定', icon: 'success' });
+    } catch (err) {
+      if (err instanceof ApiRequestError && err.statusCode === 401) {
+        // The token is already unusable on the server.
+        clearMobileToken();
+        setPaired(false);
+        setItems([]);
+        setError('');
+      } else {
+        // Do not silently clear only local storage on a network failure:
+        // that would leave a valid Relay token accessible to whoever has it.
+        await Taro.showToast({ title: '撤销未确认，请重试', icon: 'none' });
+      }
+    } finally {
+      setUnpairing(false);
+    }
+  };
 
   const open = (item: AttentionProjection) => {
     void Taro.navigateTo({
@@ -143,6 +187,12 @@ export default function InboxPage() {
           <Text>当前没有需要确认的操作</Text>
           <Text className='muted'>Codex 可以继续自己工作。</Text>
         </View>
+      )}
+
+      {paired && !loading && (
+        <Button className='unbind' loading={unpairing} disabled={unpairing} onClick={() => void unpair()}>
+          解除本机绑定
+        </Button>
       )}
 
       {paired && items.map(item => (
