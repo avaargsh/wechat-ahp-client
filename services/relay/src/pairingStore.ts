@@ -82,6 +82,12 @@ export class PairingStore {
     return session ? this.publicSession(session) : undefined;
   }
 
+  /** Revoke only the presented paired-session token, not all devices on a machine. */
+  revoke(token: string | undefined, now = Date.now()): boolean {
+    if (!this.activeSession(token, now)) return false;
+    return this.sessions.delete(token!);
+  }
+
   setNotificationsEnabled(
     token: string | undefined,
     enabled: boolean,

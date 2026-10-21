@@ -76,6 +76,40 @@ test('duplicate sessions for one OpenID produce one notification recipient', () 
   assert.equal(store.notificationRecipients('machine-a', 5_000).length, 1);
 });
 
+test('server-side revocation rejects the old token and removes notification consent', () => {
+  const store = new PairingStore(60_000, 120_000);
+  const ticket = store.create('machine-a', 1_000);
+  const session = store.claim(ticket.code, 'Phone', 1_500, 'openid-a')!;
+  store.setNotificationsEnabled(session.token, true, 2_000);
+
+  assert.equal(store.revoke(session.token, 2_500), true);
+  assert.equal(store.authorize(session.token, 2_501), undefined);
+  assert.deepEqual(store.notificationRecipients('machine-a', 2_501), []);
+  assert.equal(store.revoke(session.token, 2_502), false);
+  assert.equal(store.setNotificationsEnabled(session.token, true, 2_503), undefined);
+});
+
+test('revoking one paired device never logs out a second device', () => {
+  const store = new PairingStore(60_000, 120_000);
+  const a = store.claim(store.create('machine-a', 1_000).code, 'Phone', 1_500)!;
+  const b = store.claim(store.create('machine-a', 2_000).code, 'Tablet', 2_500)!;
+  const c = store.claim(store.create('machine-b', 3_000).code, 'Laptop', 3_500)!;
+
+  assert.equal(store.revoke(a.token, 4_000), true);
+  assert.equal(store.authorize(a.token, 4_001), undefined);
+  assert.equal(store.authorize(b.token, 4_001)?.machineId, 'machine-a');
+  assert.equal(store.authorize(c.token, 4_001)?.machineId, 'machine-b');
+  assert.equal(store.revoke(undefined, 4_002), false);
+  assert.equal(store.revoke('unknown', 4_002), false);
+});
+
+test('an expired token cannot be revoked or reused', () => {
+  const store = new PairingStore(60_000, 1_000);
+  const session = store.claim(store.create('machine-a', 1_000).code, 'Phone', 1_500)!;
+  assert.equal(store.revoke(session.token, 2_501), false);
+  assert.equal(store.authorize(session.token, 2_501), undefined);
+});
+
 test('one notification attempt consumes consent across duplicate sessions', () => {
   const store = new PairingStore(60_000, 120_000);
 

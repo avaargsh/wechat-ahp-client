@@ -42,6 +42,18 @@ Run these on the same build:
 - retry the same decision and confirm it coalesces rather than dispatching a
   second Host operation.
 
+## Additional device unpair checks (not yet part of the v2 evidence schema)
+
+Record these observations separately in the PR; the existing JSON verifier does
+not verify device revocation or certify this feature:
+
+- from the paired Mini Program, choose **解除本机绑定**, confirm, then verify a
+  request with the old Bearer token returns 401 and a second unpair returns 401;
+- confirm another paired phone and the original VS Code/Codex session remain
+  unaffected after the first device is revoked;
+- simulate an unreachable Relay during unpair and verify the Mini Program
+  retains its token, reports revocation as unconfirmed, and can retry.
+
 ## Evidence
 
 Copy `acceptance/real-device.template.json` outside the repo, replace the
