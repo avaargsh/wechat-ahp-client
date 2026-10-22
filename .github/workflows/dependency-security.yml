@@ -1,6 +1,9 @@
 name: Dependency security audit
 
 on:
+  push:
+    branches:
+      - security/nodejs-2026-10-21
   pull_request:
     paths:
       - "**/package.json"
