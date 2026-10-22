@@ -21,7 +21,8 @@
       "postcss": "8.5.18",
       "webpack-dev-middleware": "7.4.6",
       "html-minifier": "npm:html-minifier-terser@7.2.0",
-      "http-cache-semantics": "4.3.0"
+      "http-cache-semantics": "4.3.0",
+      "decompress": "npm:@codler/decompress@1.1.0"
     }
   }
 }
