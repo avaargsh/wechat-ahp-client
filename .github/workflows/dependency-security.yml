@@ -31,24 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22.23.4"
-      - name: Detect tracked lockfile
-        id: lockfile
-        shell: bash
-        run: |
-          if git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1; then
-            echo "tracked=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "tracked=false" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - name: Upload bootstrap lockfile when the repository has none
-        if: steps.lockfile.outputs.tracked == 'false'
-        uses: actions/upload-artifact@v4
-        with:
-          name: pnpm-lock-bootstrap
-          path: pnpm-lock.yaml
-          if-no-files-found: error
-          retention-days: 3
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
       - name: Audit dependency graph
         run: pnpm audit --audit-level high
