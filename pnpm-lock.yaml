@@ -82,8 +82,8 @@ importers:
   extensions/vscode-connector:
     dependencies:
       '@microsoft/agent-host-protocol':
-        specifier: 0.9.0
-        version: 0.9.0
+        specifier: 1.0.0
+        version: 1.0.0
       '@wechat-ahp/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -1253,8 +1253,8 @@ packages:
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
-  '@microsoft/agent-host-protocol@0.9.0':
-    resolution: {integrity: sha512-XY6zOqLSqlNianiWbEpZkzKRB2AKwcDPk9yAbp+afxyxhWzTfpJKy+03T5rIipJDnqf45rXiJ5JV/dzUA8JHLw==}
+  '@microsoft/agent-host-protocol@1.0.0':
+    resolution: {integrity: sha512-swjikGoqZ/bv3Mn4vkkLzwpmS/j9tV7Aas7ruD2a/R3KVsUlokwCJNSET57mdsmZLMnrawDaCr/ctufbpjE4iA==}
 
   '@napi-rs/triples@1.2.0':
     resolution: {integrity: sha512-HAPjR3bnCsdXBsATpDIP5WCrw0JcACwhhrwIAQhiR46n+jm+a2F8kBsfseAuWtSyQ+H3Yebt2k43B5dy+04yMA==}
@@ -6645,7 +6645,7 @@ snapshots:
 
   '@leichtgewicht/ip-codec@2.0.5': {}
 
-  '@microsoft/agent-host-protocol@0.9.0': {}
+  '@microsoft/agent-host-protocol@1.0.0': {}
 
   '@napi-rs/triples@1.2.0': {}
 
