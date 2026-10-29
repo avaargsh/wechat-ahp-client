@@ -26,6 +26,6 @@
     "@tarojs/plugin-platform-weapp": "4.3.0",
     "less": "^4.2.0",
     "babel-preset-taro": "4.3.0",
-    "@babel/preset-react": "^7.24.1"
+    "@babel/preset-react": "^8.0.1"
   }
 }
