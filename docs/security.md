@@ -82,3 +82,19 @@ The current send journal and notification consent state are in memory. A relay r
 ## Fail closed
 
 If the connector is offline, the relay cannot confirm current Host state. Approval therefore fails rather than being queued for later execution.
+
+## Dependency audit exceptions
+
+The Mini Program packages Taro, React, and its build tools only to compile the
+Mini Program bundle. They are development dependencies and are not installed
+as server runtime dependencies. The production dependency audit remains strict.
+
+The full dependency audit has two time-boxed exceptions for unpatched advisories
+in the Taro development toolchain: `git-clone` through the scaffolding CLI and
+`node-forge` through the local webpack development server's certificate tooling.
+The exception file pins each advisory, package version, dependency path, reason,
+isolation measure, and expiry date. CI fails if an exception expires or if the
+advisory appears through another package version or path. Keep the local
+development server off untrusted networks and do not use the scaffolding CLI
+with untrusted repository URLs. Recheck upstream fixes before the expiry and
+remove each exception as soon as its dependency is fixed or replaced.
