@@ -11,5 +11,18 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "swiper": "12.1.2",
+      "adm-zip": "0.6.1",
+      "serialize-javascript": "7.0.3",
+      "glob@>=10.2.0 <10.5.0": "10.5.0",
+      "postcss": "8.5.18",
+      "webpack-dev-middleware": "7.4.6",
+      "html-minifier": "npm:html-minifier-terser@7.2.0",
+      "http-cache-semantics": "4.3.0",
+      "decompress": "npm:@codler/decompress@1.1.0"
+    }
   }
 }

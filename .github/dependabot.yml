@@ -1,0 +1,39 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      npm-patch-minor:
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: npm
+    directory: "/apps/miniprogram"
+    schedule:
+      interval: weekly
+    groups:
+      miniprogram-patch-minor:
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: npm
+    directory: "/extensions/vscode-connector"
+    schedule:
+      interval: weekly
+    groups:
+      vscode-patch-minor:
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: npm
+    directory: "/services/relay"
+    schedule:
+      interval: weekly
+    groups:
+      relay-patch-minor:
+        update-types: ["patch", "minor"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
