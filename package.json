@@ -10,7 +10,7 @@
     "test:real-device-contract": "node --test scripts/verify-real-device-acceptance.test.mjs && node scripts/verify-real-device-acceptance.mjs scripts/fixtures/real-device-acceptance.json --allow-fixture"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "pnpm": {
     "overrides": {
