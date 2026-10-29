@@ -8,14 +8,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@wechat-ahp/protocol": "workspace:*",
-    "@tarojs/components": "4.3.0",
-    "@tarojs/react": "4.3.0",
-    "@tarojs/runtime": "4.3.0",
-    "@tarojs/taro": "4.3.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "@tarojs/shared": "4.3.0"
+    "@wechat-ahp/protocol": "workspace:*"
   },
   "devDependencies": {
     "@tarojs/cli": "4.3.0",
@@ -26,6 +19,13 @@
     "@tarojs/plugin-platform-weapp": "4.3.0",
     "less": "^4.2.0",
     "babel-preset-taro": "4.3.0",
-    "@babel/preset-react": "^7.24.1"
+    "@babel/preset-react": "^8.0.1",
+    "@tarojs/components": "4.3.0",
+    "@tarojs/react": "4.3.0",
+    "@tarojs/runtime": "4.3.0",
+    "@tarojs/taro": "4.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tarojs/shared": "4.3.0"
   }
 }
