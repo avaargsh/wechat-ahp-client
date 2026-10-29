@@ -25,7 +25,7 @@
     "@tarojs/runtime": "4.3.1",
     "@tarojs/taro": "4.3.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.3.1",
     "@tarojs/shared": "4.3.1"
   }
 }
