@@ -57,4 +57,4 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
       - name: Audit dependency graph
-        run: pnpm audit --audit-level high
+        run: node scripts/audit-dependencies.mjs
