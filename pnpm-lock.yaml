@@ -78,6 +78,9 @@ importers:
       sass:
         specifier: ^1.93.2
         version: 1.106.1
+      tsx:
+        specifier: ^4.20.5
+        version: 4.23.15
 
   extensions/vscode-connector:
     dependencies:
