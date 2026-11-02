@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "taro build --type weapp --watch",
     "build": "taro build --type weapp",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@wechat-ahp/protocol": "workspace:*"
@@ -26,6 +27,7 @@
     "@tarojs/taro": "4.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@tarojs/shared": "4.3.1"
+    "@tarojs/shared": "4.3.1",
+    "tsx": "^4.20.5"
   }
 }

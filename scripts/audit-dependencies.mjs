@@ -38,24 +38,31 @@ const failures = [];
 for (const advisory of highAdvisories) {
   const id = advisory.github_advisory_id;
   const exception = exceptionByAdvisory.get(id);
+  const findings = (advisory.findings ?? []).flatMap((finding) =>
+    (finding.paths ?? []).map((path) => ({ version: finding.version, path })),
+  );
+  const findingSummary = findings
+    .map(({ version, path }) => `${version} via ${path}`)
+    .sort()
+    .join('; ') || 'no dependency path reported';
+
   if (!exception) {
-    failures.push(`${id ?? `npm:${advisory.id}`} ${advisory.module_name}: no active exception`);
+    failures.push(
+      `${id ?? `npm:${advisory.id}`} ${advisory.module_name} (${advisory.severity}): no active exception; ${findingSummary}`,
+    );
     continue;
   }
 
   if (today >= exception.expiresOn) {
-    failures.push(`${id} ${exception.package}: exception expired on ${exception.expiresOn}`);
+    failures.push(`${id} ${exception.package}: exception expired on ${exception.expiresOn}; ${findingSummary}`);
     continue;
   }
 
   if (advisory.module_name !== exception.package) {
-    failures.push(`${id}: expected package ${exception.package}, found ${advisory.module_name}`);
+    failures.push(`${id}: expected package ${exception.package}, found ${advisory.module_name}; ${findingSummary}`);
     continue;
   }
 
-  const findings = (advisory.findings ?? []).flatMap((finding) =>
-    (finding.paths ?? []).map((path) => ({ version: finding.version, path })),
-  );
   const expected = exception.versions.flatMap((version) =>
     exception.paths.map((path) => ({ version, path })),
   );
