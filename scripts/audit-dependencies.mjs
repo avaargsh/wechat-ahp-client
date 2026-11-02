@@ -63,9 +63,6 @@ for (const advisory of highAdvisories) {
     continue;
   }
 
-  const findings = (advisory.findings ?? []).flatMap((finding) =>
-    (finding.paths ?? []).map((path) => ({ version: finding.version, path })),
-  );
   const expected = exception.versions.flatMap((version) =>
     exception.paths.map((path) => ({ version, path })),
   );
