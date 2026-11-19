@@ -11,21 +11,21 @@
     "@wechat-ahp/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@tarojs/cli": "4.3.2",
-    "@tarojs/plugin-framework-react": "4.3.2",
-    "@tarojs/webpack5-runner": "4.3.2",
+    "@tarojs/cli": "4.3.3",
+    "@tarojs/plugin-framework-react": "4.3.3",
+    "@tarojs/webpack5-runner": "4.3.3",
     "@types/react": "^18.3.24",
-    "sass": "^1.107.1",
-    "@tarojs/plugin-platform-weapp": "4.3.2",
+    "sass": "^1.108.2",
+    "@tarojs/plugin-platform-weapp": "4.3.3",
     "less": "^4.2.0",
-    "babel-preset-taro": "4.3.2",
+    "babel-preset-taro": "4.3.3",
     "@babel/preset-react": "^7.24.1",
-    "@tarojs/components": "4.3.2",
-    "@tarojs/react": "4.3.2",
-    "@tarojs/runtime": "4.3.2",
-    "@tarojs/taro": "4.3.2",
+    "@tarojs/components": "4.3.3",
+    "@tarojs/react": "4.3.3",
+    "@tarojs/runtime": "4.3.3",
+    "@tarojs/taro": "4.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@tarojs/shared": "4.3.2"
+    "@tarojs/shared": "4.3.3"
   }
 }
