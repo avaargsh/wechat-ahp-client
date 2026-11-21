@@ -56,7 +56,8 @@
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --outfile=dist/extension.cjs --external:vscode",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:session-state": "node --experimental-strip-types --test tests/session-state-guard.test.mjs"
   },
   "dependencies": {
     "@microsoft/agent-host-protocol": "1.0.0",
