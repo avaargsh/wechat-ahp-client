@@ -9,6 +9,7 @@ import {
 import { AhpClient, type ClientEvent } from '@microsoft/agent-host-protocol/client';
 import type { DiscoveredHost } from './discovery.js';
 import { LocalTransport } from './transport.js';
+import { isSessionState } from './session-state-guard.js';
 
 export class HostConnection {
   readonly client: AhpClient;
@@ -85,11 +86,11 @@ export class HostConnection {
   async session(uri: string): Promise<SessionState> {
     const { result, subscription } = await this.client.subscribe(uri);
     await subscription.close();
-    const snapshot = result.snapshot;
-    if (!snapshot || !snapshot.state || !('chats' in snapshot.state)) {
+    const state = result.snapshot?.state;
+    if (!isSessionState(state)) {
       throw new Error('Agent Host did not return a session snapshot.');
     }
-    return snapshot.state;
+    return state;
   }
 
   dispatch(channel: string, action: StateAction): Promise<ActionEnvelope> {
