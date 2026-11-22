@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { acceptsLowSeverityAuditExit } from './audit-report-policy.mjs';
+import { acceptsLowSeverityAuditExit, isCompleteAuditReport } from './audit-report-policy.mjs';
 
 function report(counts = { info: 0, low: 4, moderate: 17, high: 0, critical: 0 }) {
   const advisories = {};
@@ -39,4 +39,17 @@ test('reject pnpm execution errors, unexpected exits and zero-finding failures',
   assert.equal(acceptsLowSeverityAuditExit(attempt({ signal: 'SIGKILL' }), report()), false);
   assert.equal(acceptsLowSeverityAuditExit(attempt({ stderr: 'ERR_PNPM_FETCH_500' }), report()), false);
   assert.equal(acceptsLowSeverityAuditExit(attempt(), report({ info: 0, low: 0, moderate: 0, high: 0, critical: 0 })), false);
+});
+
+
+test('all audit exits require a complete, consistent advisory report', () => {
+  assert.equal(isCompleteAuditReport(report()), true);
+  assert.equal(isCompleteAuditReport(report({ info: 0, low: 0, moderate: 0, high: 0, critical: 0 })), true);
+  const healthy = report();
+  assert.equal(isCompleteAuditReport({ advisories: healthy.advisories }), false);
+  assert.equal(isCompleteAuditReport({ ...healthy, error: { code: 'E_REGISTRY' } }), false);
+  assert.equal(isCompleteAuditReport({ ...healthy, metadata: { vulnerabilities: { ...healthy.metadata.vulnerabilities, high: 1 } } }), false);
+  assert.equal(isCompleteAuditReport({ ...healthy, advisories: { advisory: { severity: 'unknown' } } }), false);
+  assert.equal(isCompleteAuditReport({ ...healthy, advisories: [] }), false);
+  assert.equal(isCompleteAuditReport(null), false);
 });
