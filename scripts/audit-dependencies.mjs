@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { acceptsLowSeverityAuditExit } from './audit-report-policy.mjs';
 
 const exceptionFile = new URL('../security/dependency-audit-exceptions.json', import.meta.url);
 const { exceptions } = JSON.parse(readFileSync(exceptionFile, 'utf8'));
@@ -79,6 +80,9 @@ if (failures.length > 0) {
 }
 
 if (audit.status !== 0 && highAdvisories.length === 0) {
+  if (acceptsLowSeverityAuditExit(audit, report)) {
+    console.warn('pnpm audit exit=1, but complete advisory and metadata counts prove High=0, Critical=0; lower-severity-only findings are below the declared High threshold.');
+  } else {
   // pnpm can return a nonzero status without exposing a High advisory in the
   // expected map. Keep the gate RED and print bounded, non-secret JSON
   // diagnostics so CI can distinguish registry/tooling failures from policy.
@@ -97,6 +101,7 @@ if (audit.status !== 0 && highAdvisories.length === 0) {
   }));
   console.error(`pnpm audit failed with exit code ${audit.status ?? 'unknown'}.`);
   process.exit(1);
+  }
 }
 
 console.log(`Dependency audit passed with ${highAdvisories.length} exact, unexpired high-severity exception(s).`);
