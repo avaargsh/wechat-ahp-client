@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { Agent, createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { createConnection } from 'node:net';
@@ -86,4 +87,16 @@ test('got cache preserves query identity and authorization variants', { timeout:
   assert.equal((await request('/cached?tag=one&tag=two', 'test-user-b')).body,
     '/cached?tag=one&tag=two|test-user-b');
   assert.equal(requests, 3, 'different query values and authorization must reach the server');
+});
+
+
+test('Taro build dependency graph excludes unused template clone execution', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.pnpm?.overrides?.['@tarojs/cli@4.3.3>download-git-repo'], '-',
+    'scaffolding downloader must not be reachable from the build CLI');
+  const lockfile = readFileSync(new URL('../pnpm-lock.yaml', import.meta.url), 'utf8');
+  assert.doesNotMatch(lockfile, /^  download-git-repo@/m,
+    'unused Taro scaffolding downloader is still installed');
+  assert.doesNotMatch(lockfile, /^  git-clone@/m,
+    'vulnerable git-clone remains installed');
 });
