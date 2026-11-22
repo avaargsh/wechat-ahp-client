@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { acceptsLowSeverityAuditExit } from './audit-report-policy.mjs';
+import { acceptsLowSeverityAuditExit, isCompleteAuditReport } from './audit-report-policy.mjs';
 
 const exceptionFile = new URL('../security/dependency-audit-exceptions.json', import.meta.url);
 const { exceptions } = JSON.parse(readFileSync(exceptionFile, 'utf8'));
@@ -25,9 +25,9 @@ try {
   process.exit(1);
 }
 
-if (!report.advisories || typeof report.advisories !== 'object') {
-  console.error('pnpm audit JSON did not include an advisory map. Failing closed.');
-  console.error(JSON.stringify(report.error ?? report.metadata ?? report));
+if (!isCompleteAuditReport(report)) {
+  console.error('pnpm audit returned an incomplete or inconsistent advisory map/metadata. Failing closed.');
+  console.error(JSON.stringify(report?.error ?? report?.metadata ?? report));
   process.exit(1);
 }
 
@@ -76,6 +76,15 @@ for (const advisory of highAdvisories) {
 if (failures.length > 0) {
   console.error('Dependency audit failed:');
   for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+// An execution/transport anomaly must never be interpreted as a valid audit,
+// even when the parsed JSON happens to contain no High findings.
+if (!Number.isInteger(audit.status) || audit.status < 0 || audit.status > 1 ||
+    audit.signal !== null || typeof audit.stderr !== 'string' || audit.stderr.trim() !== '') {
+  console.error(`pnpm audit execution failed: status=${audit.status ?? 'unknown'} signal=${audit.signal ?? 'none'}.`);
+  if (audit.stderr) console.error(audit.stderr.slice(0, 2000));
   process.exit(1);
 }
 
