@@ -11,6 +11,12 @@ on:
       - "pnpm-lock.yaml"
       - ".github/dependabot.yml"
       - ".github/workflows/dependency-security.yml"
+      - ".github/workflows/ci.yml"
+      - "scripts/audit-dependencies.mjs"
+      - "scripts/audit-report-policy.mjs"
+      - "scripts/audit-report-policy.test.mjs"
+      - "security/dependency-audit-exceptions.json"
+      - "packages/taro-template-download-blocked/**"
   schedule:
     - cron: "41 6 * * 1"
   workflow_dispatch:
