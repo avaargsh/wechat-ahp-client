@@ -19,7 +19,7 @@ overrides:
   follow-redirects: 1.16.2
   joi@17: 17.13.9
   node-forge: 1.4.1
-  '@tarojs/cli@4.3.3>download-git-repo': '-'
+  '@tarojs/cli@4.3.3>download-git-repo': link:./packages/taro-template-download-blocked
 
 importers:
 
@@ -116,6 +116,8 @@ importers:
         version: 0.28.2
 
   packages/protocol: {}
+
+  packages/taro-template-download-blocked: {}
 
   services/relay:
     dependencies:
@@ -6978,6 +6980,7 @@ snapshots:
       adm-zip: 0.6.1
       axios: 1.21.1
       cli-highlight: 2.1.11
+      download-git-repo: link:packages/taro-template-download-blocked
       envinfo: 7.21.0
       inquirer: 8.2.7(@types/node@26.6.6)
       latest-version: 5.1.0
