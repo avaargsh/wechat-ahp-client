@@ -79,8 +79,23 @@ if (failures.length > 0) {
 }
 
 if (audit.status !== 0 && highAdvisories.length === 0) {
+  // pnpm can return a nonzero status without exposing a High advisory in the
+  // expected map. Keep the gate RED and print bounded, non-secret JSON
+  // diagnostics so CI can distinguish registry/tooling failures from policy.
+  const severityCounts = Object.values(report.advisories).reduce((counts, item) => {
+    const severity = String(item.severity ?? 'unknown');
+    counts[severity] = (counts[severity] ?? 0) + 1;
+    return counts;
+  }, {});
+  console.error(JSON.stringify({
+    exitCode: audit.status,
+    signal: audit.signal,
+    severityCounts,
+    error: report.error ?? null,
+    metadata: report.metadata ?? null,
+    stderr: audit.stderr?.slice(0, 2000) ?? '',
+  }));
   console.error(`pnpm audit failed with exit code ${audit.status ?? 'unknown'}.`);
-  if (audit.stderr) console.error(audit.stderr.trim());
   process.exit(1);
 }
 
