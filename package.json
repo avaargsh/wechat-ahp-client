@@ -28,7 +28,8 @@
       "got@8>cacheable-request": "6.1.0",
       "follow-redirects": "1.16.2",
       "joi@17": "17.13.9",
-      "node-forge": "1.4.1"
+      "node-forge": "1.4.1",
+      "@tarojs/cli@4.3.3>download-git-repo": "-"
     }
   }
 }
