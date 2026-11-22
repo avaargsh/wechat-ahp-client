@@ -1,8 +1,8 @@
 name: ci
 
 on:
+  # Stacked Draft PRs must be tested against their actual parent feature branch.
   pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
