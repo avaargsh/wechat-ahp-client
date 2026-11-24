@@ -77,8 +77,8 @@ test('detects changes to identity, title, kind, workspace and impact', () => {
 test('fresh Host content changes block dispatch and publish a new version', async () => {
   let current = entry();
   let dispatches = 0;
-  await assert.rejects(
-    refreshPendingApproval(
+  const attempt = async () => {
+    const approved = await refreshPendingApproval(
       original.version,
       async () => {
         current = entry(reconcilePendingAttention(
@@ -88,10 +88,14 @@ test('fresh Host content changes block dispatch and publish a new version', asyn
         ));
       },
       () => current,
-    ),
+    );
+    dispatches++;
+    return approved;
+  };
+  await assert.rejects(
+    attempt(),
     (error: unknown) => (error as { code?: string }).code === 'version_conflict',
   );
-  if (current.attention.version === original.version) dispatches++;
   assert.equal(current.attention.summary, 'npm run deploy');
   assert.equal(current.attention.version, 8);
   assert.equal(dispatches, 0);
@@ -127,9 +131,10 @@ test('missing pending item fails closed after Host refresh', async () => {
 test('Host snapshot errors propagate and prevent dispatch', async () => {
   const failure = new Error('Host snapshot unavailable');
   let dispatches = 0;
-  await assert.rejects(
-    refreshPendingApproval(original.version, async () => { throw failure; }, () => entry()),
-    error => error === failure,
-  );
+  const attempt = async () => {
+    await refreshPendingApproval(original.version, async () => { throw failure; }, () => entry());
+    dispatches++;
+  };
+  await assert.rejects(attempt(), error => error === failure);
   assert.equal(dispatches, 0);
 });

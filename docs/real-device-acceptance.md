@@ -46,6 +46,12 @@ Run these on the same build:
 - retry the same decision and confirm it coalesces rather than dispatching a
   second Host operation.
 
+The Connector re-subscribes to the live Agent Host immediately before dispatch and
+rejects when the current projection no longer matches the reviewed version. The
+current AHP confirmation action has no atomic content/version compare-and-swap;
+this refresh narrows, but cannot eliminate, a concurrent mutation between the
+snapshot and dispatch. Do not describe it as atomic approval attestation.
+
 ## Additional device unpair checks (not yet part of the v2 evidence schema)
 
 Record these observations separately in the PR; the existing JSON verifier does
