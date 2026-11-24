@@ -83,25 +83,35 @@ The current send journal and notification consent state are in memory. A relay r
 
 If the connector is offline, the relay cannot confirm current Host state. Approval therefore fails rather than being queued for later execution.
 
-## Dependency audit exceptions
+## Dependency graph and audit boundary
 
-The Mini Program packages Taro, React, and its build tools only to compile the
-Mini Program bundle. They are development dependencies and are not installed
-as server runtime dependencies. The production dependency audit remains strict.
+The Mini Program compiles an existing Taro 4.3.3 project using
+`taro build --type weapp`. Taro CLI eagerly loads its historical template
+module even during a normal build, so **removing the dependency outright
+breaks the build** (verified by real CI #45002966265 with
+`Cannot find module 'download-git-repo'`).
 
-The full dependency audit has one time-boxed exception for an unpatched advisory
-in the Taro development toolchain: `git-clone` through the scaffolding CLI.
-The exception file pins each advisory, package version, dependency path, reason,
-isolation measure, and expiry date. CI fails if an exception expires or if the
-advisory appears through another package version or path. Keep the local
-development server off untrusted networks and do not use the scaffolding CLI
-with untrusted repository URLs. Recheck upstream fixes before the expiry and
-remove each exception as soon as its dependency is fixed or replaced.
+A scoped root override
+`@tarojs/cli@4.3.3>download-git-repo: link:./packages/taro-template-download-blocked`
+therefore provides an auditable local CommonJS compatibility module. Importing
+it has no network or subprocess side effects. Invoking it always throws
+`ERR_TARO_REMOTE_TEMPLATE_DISABLED`; **remote template initialization via
+that dependency is intentionally unsupported**. The vulnerable upstream
+`download-git-repo` and `git-clone` packages are absent from the pinned
+lockfile. Taro CLI upgrades must recheck this exact override and installed
+graph before accepting a newer dependency graph.
 
-Root overrides pin patched `follow-redirects`, Joi 17, and `node-forge` releases.
-The legacy Got 8 downloader uses `cacheable-request` 6.1.0 to remove the vulnerable
-`decode-uri-component` dependency without loading an ESM-only decoder from the
-old CommonJS `query-string` caller. `pnpm test:toolchain` checks the actual Taro
-downloader dependency chain against a loopback server, including redirects,
-query preservation, and HTTP caching. The patched `node-forge` no longer needs
-an audit exception.
+`pnpm test:toolchain` now tests the locked graph and imports the module from
+the **actual Taro CLI dependency resolution path**, verifying that a remote
+clone request is refused. Previous loopback archive-download/Got tests applied
+to the now-removed upstream downloader and are no longer relevant to the
+supported build-only contract; do not resurrect remote template downloads
+without an independent security design and tests. Real Taro compilation must
+still pass frozen-install/typecheck/test/build CI.
+
+The full and production `pnpm audit` gates remain enabled and fail closed.
+The old expired GHSA-8jmw-wjr8-2x66 exception was **removed**, not extended.
+Any audit tooling error is a RED gate, not a reason to assume there are no
+high-severity advisories. The root overrides for follow-redirects, Joi,
+node-forge, etc. remain unchanged. This is not proof of production WeChat-device
+acceptance, independent review, or permission to merge protected effects.

@@ -1,0 +1,8 @@
+{
+  "name": "download-git-repo",
+  "version": "0.0.0-local-disabled",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.cjs",
+  "description": "Fail-closed local replacement for Taro remote template downloader; not an npm package"
+}

@@ -1,15 +1,3 @@
 {
-  "exceptions": [
-    {
-      "advisory": "GHSA-8jmw-wjr8-2x66",
-      "package": "git-clone",
-      "versions": ["0.1.0"],
-      "paths": [
-        "apps__miniprogram>@tarojs/cli>download-git-repo>git-clone"
-      ],
-      "expiresOn": "2026-11-12",
-      "reason": "No patched release exists. This is reachable only through the Mini Program scaffolding CLI, which is a development tool and is not shipped in the Mini Program bundle.",
-      "isolation": "The package is classified as a development dependency. Do not run the scaffolding CLI with untrusted repository URLs; remove this exception as soon as an upstream fix or safe replacement is available."
-    }
-  ]
+  "exceptions": []
 }

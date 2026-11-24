@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { acceptsLowSeverityAuditExit, isCompleteAuditReport } from './audit-report-policy.mjs';
 
 const exceptionFile = new URL('../security/dependency-audit-exceptions.json', import.meta.url);
 const { exceptions } = JSON.parse(readFileSync(exceptionFile, 'utf8'));
@@ -24,9 +25,9 @@ try {
   process.exit(1);
 }
 
-if (!report.advisories || typeof report.advisories !== 'object') {
-  console.error('pnpm audit JSON did not include an advisory map. Failing closed.');
-  console.error(JSON.stringify(report.error ?? report.metadata ?? report));
+if (!isCompleteAuditReport(report)) {
+  console.error('pnpm audit returned an incomplete or inconsistent advisory map/metadata. Failing closed.');
+  console.error(JSON.stringify(report?.error ?? report?.metadata ?? report));
   process.exit(1);
 }
 
@@ -78,10 +79,38 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-if (audit.status !== 0 && highAdvisories.length === 0) {
-  console.error(`pnpm audit failed with exit code ${audit.status ?? 'unknown'}.`);
-  if (audit.stderr) console.error(audit.stderr.trim());
+// An execution/transport anomaly must never be interpreted as a valid audit,
+// even when the parsed JSON happens to contain no High findings.
+if (!Number.isInteger(audit.status) || audit.status < 0 || audit.status > 1 ||
+    audit.signal !== null || typeof audit.stderr !== 'string' || audit.stderr.trim() !== '') {
+  console.error(`pnpm audit execution failed: status=${audit.status ?? 'unknown'} signal=${audit.signal ?? 'none'}.`);
+  if (audit.stderr) console.error(audit.stderr.slice(0, 2000));
   process.exit(1);
+}
+
+if (audit.status !== 0 && highAdvisories.length === 0) {
+  if (acceptsLowSeverityAuditExit(audit, report)) {
+    console.warn('pnpm audit exit=1, but complete advisory and metadata counts prove High=0, Critical=0; lower-severity-only findings are below the declared High threshold.');
+  } else {
+  // pnpm can return a nonzero status without exposing a High advisory in the
+  // expected map. Keep the gate RED and print bounded, non-secret JSON
+  // diagnostics so CI can distinguish registry/tooling failures from policy.
+  const severityCounts = Object.values(report.advisories).reduce((counts, item) => {
+    const severity = String(item.severity ?? 'unknown');
+    counts[severity] = (counts[severity] ?? 0) + 1;
+    return counts;
+  }, {});
+  console.error(JSON.stringify({
+    exitCode: audit.status,
+    signal: audit.signal,
+    severityCounts,
+    error: report.error ?? null,
+    metadata: report.metadata ?? null,
+    stderr: audit.stderr?.slice(0, 2000) ?? '',
+  }));
+  console.error(`pnpm audit failed with exit code ${audit.status ?? 'unknown'}.`);
+  process.exit(1);
+  }
 }
 
 console.log(`Dependency audit passed with ${highAdvisories.length} exact, unexpired high-severity exception(s).`);
