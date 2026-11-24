@@ -56,17 +56,18 @@
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --outfile=dist/extension.cjs --external:vscode",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:session-state": "node --experimental-strip-types --test tests/session-state-guard.test.mjs"
   },
   "dependencies": {
-    "@microsoft/agent-host-protocol": "1.0.0",
+    "@microsoft/agent-host-protocol": "1.1.0",
     "@wechat-ahp/protocol": "workspace:*",
-    "ws": "^8.22.1",
+    "ws": "^8.23.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "@types/vscode": "^1.144.0",
+    "@types/vscode": "^1.146.0",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.28.2",
     "@types/qrcode": "^1.5.5"
