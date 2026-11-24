@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   SUPPORTED_PROTOCOL_VERSIONS,
   type ActionEnvelope,
+  type ChatState,
   type ListSessionsResult,
   type SessionState,
   type StateAction,
@@ -80,6 +81,25 @@ export class HostConnection {
       cursor,
       limit: 50,
     }) as Promise<ListSessionsResult>;
+  }
+
+  async chatSnapshot(uri: string): Promise<{ state: ChatState; fromSeq: number }> {
+    const { result, subscription } = await this.client.subscribe(uri, {
+      view: { turns: 64 },
+      delivery: { maxLatencyMs: 0 },
+    });
+    try {
+      const snapshot = result.snapshot;
+      if (!snapshot || !snapshot.state || !('turns' in snapshot.state)) {
+        throw new Error('Agent Host did not return a chat snapshot.');
+      }
+      return {
+        state: snapshot.state as ChatState,
+        fromSeq: snapshot.fromSeq,
+      };
+    } finally {
+      await subscription.close().catch(() => undefined);
+    }
   }
 
   async session(uri: string): Promise<SessionState> {

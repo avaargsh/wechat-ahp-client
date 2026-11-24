@@ -15,6 +15,7 @@ import type { Subscription, SubscriptionEvent } from '@microsoft/agent-host-prot
 import type { AttentionProjection, ResolveDecision } from '@wechat-ahp/protocol';
 import { discoverHosts, resolveHost } from './discovery.js';
 import { HostConnection } from './connection.js';
+import { reconcilePendingAttention, refreshPendingApproval } from './pending-attention.js';
 
 export interface AhpBinding {
   hostId: string;
@@ -54,6 +55,7 @@ export class AhpAdapter {
   private subscription?: Subscription;
   private state?: ChatState;
   private sequence = 0;
+  private binding?: AhpBinding;
   private consumeTask?: Promise<void>;
   private readonly pending = new Map<string, PendingTool>();
 
@@ -121,6 +123,7 @@ export class AhpAdapter {
     }
 
     this.subscription = subscription;
+    this.binding = binding;
     this.state = snapshot.state as ChatState;
     this.sequence = snapshot.fromSeq;
     this.syncPending(binding);
@@ -139,6 +142,7 @@ export class AhpAdapter {
     await this.consumeTask?.catch(() => undefined);
     this.consumeTask = undefined;
     this.state = undefined;
+    this.binding = undefined;
     this.pending.clear();
   }
 
@@ -153,37 +157,56 @@ export class AhpAdapter {
   ): Promise<AttentionProjection> {
     const pending = this.pending.get(attentionId);
     const connection = this.connection;
+    const binding = this.binding;
 
-    if (!pending || !connection) {
+    if (!pending || !connection || !binding) {
       throw Object.assign(new Error('approval is no longer pending'), {
         code: 'not_pending' as const,
       });
     }
-    if (pending.attention.version !== expectedVersion) {
-      throw Object.assign(new Error('approval changed; refresh before deciding'), {
-        code: 'version_conflict' as const,
-      });
-    }
+
+    // AHP's confirmation action has no content/version CAS. Refresh the live
+    // Host snapshot immediately before dispatch to narrow the read/execute race.
+    // This is fail-closed on refresh errors, but is not an atomic Host attestation.
+    const current = await refreshPendingApproval(
+      expectedVersion,
+      async () => {
+        const snapshot = await connection.chatSnapshot(pending.attention.resourceUri);
+        if (this.connection !== connection || this.binding !== binding) {
+          throw Object.assign(new Error('approval is no longer pending'), {
+            code: 'not_pending' as const,
+          });
+        }
+        // The live subscription may have delivered a newer event while the
+        // snapshot request was in flight. Never overwrite that newer state.
+        if (snapshot.fromSeq < this.sequence) return;
+
+        this.sequence = snapshot.fromSeq;
+        this.state = snapshot.state;
+        this.syncPending(binding);
+      },
+      () => this.pending.get(attentionId),
+    );
 
     const action: StateAction = decision === 'allow_once'
       ? {
           type: ActionType.ChatToolCallConfirmed,
-          turnId: pending.turnId,
-          toolCallId: pending.toolCallId,
+          turnId: current.turnId,
+          toolCallId: current.toolCallId,
           approved: true as const,
           confirmed: ToolCallConfirmationReason.UserAction,
         }
       : {
           type: ActionType.ChatToolCallConfirmed,
-          turnId: pending.turnId,
-          toolCallId: pending.toolCallId,
+          turnId: current.turnId,
+          toolCallId: current.toolCallId,
           approved: false as const,
           reason: ToolCallCancellationReason.Denied,
         };
 
-    const ack = await connection.dispatch(pending.attention.resourceUri, action);
+    const ack = await connection.dispatch(current.attention.resourceUri, action);
     const resolved: AttentionProjection = {
-      ...pending.attention,
+      ...current.attention,
       state: decision === 'allow_once' ? 'resolved_allow' : 'resolved_reject',
       version: ack.serverSeq,
       resolvedAt: new Date().toISOString(),
@@ -236,7 +259,6 @@ export class AhpAdapter {
 
       const id = makeAttentionId(binding, turn!.id, tool.toolCallId);
       seen.add(id);
-      if (this.pending.has(id)) continue;
 
       const preExecution = tool.status === ToolCallStatus.PendingConfirmation;
       const hasEdits = preExecution && Boolean(tool.edits);
@@ -244,7 +266,7 @@ export class AhpAdapter {
         ? text(tool.confirmationTitle) || tool.displayName
         : `确认 ${tool.displayName} 的结果`;
 
-      const attention: AttentionProjection = {
+      const candidate: AttentionProjection = {
         id,
         machineId: this.options.machineId,
         sessionId: binding.sessionUri,
@@ -258,6 +280,10 @@ export class AhpAdapter {
         version: Math.max(1, this.sequence),
         observedAt: new Date().toISOString(),
       };
+
+      const previous = this.pending.get(id);
+      const attention = reconcilePendingAttention(previous?.attention, candidate, this.sequence);
+      if (previous && attention === previous.attention) continue;
 
       this.pending.set(id, {
         attention,

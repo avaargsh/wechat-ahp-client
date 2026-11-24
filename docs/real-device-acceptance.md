@@ -37,10 +37,20 @@ Run these on the same build:
 - stop the Connector, attempt a decision, and confirm **offline fails closed**;
 - resolve the approval in VS Code first, then act on the stale phone view and
   confirm **stale fails closed + refreshes**;
+- change pending action content/version after the phone displays it, then tap;
+  confirm the first tap refreshes and never dispatches, and a new tap is required;
+- rapidly tap Allow Once and Reject before the UI rerenders; confirm only one
+  Host resolve is attempted and later errors release the local decision fence;
 - issue opposite decisions from two clients and confirm the conflicting path
   **fails closed**;
 - retry the same decision and confirm it coalesces rather than dispatching a
   second Host operation.
+
+The Connector re-subscribes to the live Agent Host immediately before dispatch and
+rejects when the current projection no longer matches the reviewed version. The
+current AHP confirmation action has no atomic content/version compare-and-swap;
+this refresh narrows, but cannot eliminate, a concurrent mutation between the
+snapshot and dispatch. Do not describe it as atomic approval attestation.
 
 ## Additional device unpair checks (not yet part of the v2 evidence schema)
 
