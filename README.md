@@ -38,10 +38,23 @@ WeChat Mini Program
 - resolved-elsewhere projection when the approval disappears on another client
 - paired-device server-side unpair (`DELETE /api/session`), with old token invalidated and other devices unaffected
 
+## Local contract smoke test
+
+From the repository root, run the built-in Node.js test runner before installing workspace dependencies. No WeChat account, relay, or VS Code Agent Host is needed for this check.
+
+```sh
+node --test scripts/verify-real-device-acceptance.test.mjs
+node scripts/verify-real-device-acceptance.mjs scripts/fixtures/real-device-acceptance.json --allow-fixture
+```
+
+The committed synthetic fixture should report `contractVerified: true` and `liveExecutionVerified: false`. Without `--allow-fixture`, the verifier must reject this fixture. This checks the acceptance contract, not a live approval or a proof of device behavior.
+
 ## Local development
 
+Use the workspace's pinned pnpm 10.17.1 (check with `pnpm --version`) and the Node.js 22 line used by CI. From a fresh checkout, keep the lockfile unchanged:
+
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build
 
 # Relay
